@@ -17,6 +17,8 @@ void Timer1_Init();
 void Timer2_Init();
 void Timer2_ISR();
 
-
+void Beep_Initialization(void);
+inline void Beep_Start(void);
+inline void Beep_Stop(void);
 
 #endif /* __MAIN_H */

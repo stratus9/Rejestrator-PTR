@@ -31,17 +31,6 @@
 #include "main.h"
 
 /* Private defines -----------------------------------------------------------*/
-#define AX25_FLAG 0x7E
-#define CRC_POLY 0x8408
-#define APRS_DEST_CALLSIGN				"APECAN" // APExxx = Pecan device
-#define APRS_DEST_SSID                                  0
-#define APRS_OWN_CALLSIGN				"SP5RZP"
-ax25_t APRS_frame;
-
-#define RADIO_CLK	30000000UL
-
-uint32_t outdiv;
-uint8_t initialized = 0;
 
 
 /* Private functions ---------------------------------------------------------*/
@@ -49,31 +38,31 @@ uint8_t initialized = 0;
 
 void main(void)
 {
-  /* Select fCPU = 16MHz */
+  //----------------Select fCPU = 16MHz--------------------------//
   CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
   
-  /* Init UART */
+  //----------------------Init UART------------------------------//
   //USART_Initialization();       //1182 B -> 85 B
   
-  /* Init SPI */
-  //SPI_Initialization();         //334 B -> 78 B
-  
-  // Init I2C  //
+  //------------------------Init I2C-----------------------------//
   //I2C_Initialization();
   
   
-  // Init GPIO //
+  //-----------------------Init GPIO-----------------------------//
   //GPIO_Initialization();        //263 B -> 57 B
    
+  //----------------------Init Timers---------------------------//
   //Delay(10000);
   //Timer1_Init();                //716 B
   //Timer2_Init();                //516 B
   //enableInterrupts();
   
-  //Beep_Initialization();
+  //----------------------Init Buzzer---------------------------//
+  // Beep_Start();
+  // Beep_Stop();
+  Beep_Initialization(); 
 
   while (1){
-
   }
 }
 
@@ -247,6 +236,24 @@ void Timer2_Init(){
 
 void Timer2_ISR(){
 }
+
+void Beep_Initialization(void){
+  BEEP_DeInit();
+  BEEP->CSR &= 0xE0;
+  BEEP->CSR |= 10;
+  
+  BEEP_Init(BEEP_FREQUENCY_2KHZ);       //BEEP_FREQUENCY_1KHZ, BEEP_FREQUENCY_2KHZ, BEEP_FREQUENCY_4KHZ
+  BEEP_Cmd(DISABLE);
+}
+
+inline void Beep_Start(void){
+  BEEP_Cmd(ENABLE);
+}
+
+inline void Beep_Stop(void){
+  BEEP_Cmd(DISABLE);
+}
+
 
 
 
