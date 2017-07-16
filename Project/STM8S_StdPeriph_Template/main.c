@@ -113,6 +113,12 @@ void GPIO_Init_Fast(){
   //GPIOA->CR2 &= ~0x04;  //slow slope 2MHz
   //GPIOA->DDR |= 0x04;   //Output
   //GPIOA->CR1 |= 0x04;   //Push-Pull
+  
+  //PC4 - I2C Pull-up
+  GPIOC->CR2 &= ~0x10;  //slow slope 2MHz
+  GPIOC->DDR |= 0x10;   //Output
+  GPIOC->CR1 |= 0x10;   //Push-Pull
+  GPIOC->ODR |= 0x10;   //Enable I2C Pull-up
 }
 
 //=======================================================================================
@@ -235,6 +241,10 @@ void Timer2_Init(){
 void Timer2_ISR(){
 }
 
+//==========================================================================================================
+//                              Buzzer
+//==========================================================================================================
+
 void Beep_Initialization(void){
   BEEP_DeInit();
   BEEP->CSR &= 0xE0;
@@ -252,6 +262,10 @@ inline void Beep_Stop(void){
   BEEP_Cmd(DISABLE);
 }
 
+
+//==========================================================================================================
+//                              RGB LEDs
+//==========================================================================================================
 
 /*
   //PC3 - LED1
@@ -289,6 +303,31 @@ void LED_GREEN(uint8_t value){
      GPIOA->ODR |= 0x02;    //Pull-up
   }
 }
+
+//==========================================================================================================
+//                              I2C
+//==========================================================================================================
+
+void I2C_Initialization(void){
+  I2C_DeInit();
+  I2C_Init(300000, 0xAA, I2C_DUTYCYCLE_2, I2C_ACK_CURR, I2C_ADDMODE_7BIT, 16);
+  I2C_Cmd(ENABLE);
+  
+  
+}
+
+void I2C_SendOneByte(uint8_t address, uint8_t data){
+  I2C_GenerateSTART(ENABLE);
+  while(!(I2C->SR1 & I2C_SR1_SB)){}
+  uint8_t dummy = I2C->SR1; // Read SR1 to clear SB bit
+  I2C->DR = address | 0x00;                        // Transmit address+E
+  while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
+  I2C->DR = data;
+  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+}
+
 
 
 #ifdef USE_FULL_ASSERT

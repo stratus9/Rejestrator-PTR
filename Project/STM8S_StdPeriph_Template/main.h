@@ -24,4 +24,7 @@ inline void Beep_Stop(void);
 void LED_BLUE(uint8_t value);
 void LED_GREEN(uint8_t value);
 
+void I2C_Initialization(void);
+void I2C_SendOneByte(uint8_t address, uint8_t data);
+
 #endif /* __MAIN_H */
