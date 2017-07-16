@@ -21,4 +21,7 @@ void Beep_Initialization(void);
 inline void Beep_Start(void);
 inline void Beep_Stop(void);
 
+void LED_BLUE(uint8_t value);
+void LED_GREEN(uint8_t value);
+
 #endif /* __MAIN_H */

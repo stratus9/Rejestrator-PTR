@@ -49,13 +49,15 @@ void main(void)
   
   
   //-----------------------Init GPIO-----------------------------//
-  //GPIO_Initialization();        //263 B -> 57 B
+  // LED_BLUE(1/0);
+  // LED_GREEN(1/0);
+  GPIO_Initialization();        //263 B -> 57 B
    
   //----------------------Init Timers---------------------------//
   //Delay(10000);
   //Timer1_Init();                //716 B
-  //Timer2_Init();                //516 B
-  //enableInterrupts();
+  Timer2_Init();                //516 B
+  enableInterrupts();
   
   //----------------------Init Buzzer---------------------------//
   // Beep_Start();
@@ -63,6 +65,7 @@ void main(void)
   Beep_Initialization(); 
 
   while (1){
+
   }
 }
 
@@ -98,24 +101,18 @@ void GPIO_Initialization(void){
 }
 
 void GPIO_Init_Fast(){
-  //PD2 - SI4463 CS pin
-  GPIOD->CR2 &= ~0x04;  //slow slope 2MHz
-  GPIOD->ODR |= 0x04;   //Init High state
-  GPIOD->DDR |= 0x04;   //Output
-  GPIOD->CR1 |= 0x04;   //Push-Pull
-  GPIOD->ODR |= 0x04;   //Init High state
-  
-  //PC3 - ??
+  //PC3 - LED1
   GPIOC->CR2 &= ~0x08;  //slow slope 2MHz
-  GPIOC->DDR |= 0x08;   //Output
-  GPIOC->CR1 |= 0x08;   //Push-Pull
+  GPIOC->DDR &= ~0x08;  //Input
   
-  //PD4 - ??
-  GPIOD->CR2 &= ~0x10;  //slow slope 2MHz
-  GPIOD->ODR |= 0x10;   //Init High state
-  GPIOD->DDR |= 0x10;   //Output
-  GPIOD->CR1 |= 0x10;   //Push-Pull
-  GPIOD->ODR |= 0x10;   //Init High state
+  //PA1 - LED2
+  GPIOA->CR2 &= ~0x02;  //slow slope 2MHz
+  GPIOA->DDR &= ~0x02;  //Intput
+  
+  //PA2 - LED3  - wada w PCB v1.0; W wersji v1.0 zworka z +3V3
+  //GPIOA->CR2 &= ~0x04;  //slow slope 2MHz
+  //GPIOA->DDR |= 0x04;   //Output
+  //GPIOA->CR1 |= 0x04;   //Push-Pull
 }
 
 //=======================================================================================
@@ -226,7 +223,8 @@ void Timer1_Init(){
 
 void Timer2_Init(){
   TIM2_DeInit();
-  TIM2_TimeBaseInit(TIM2_PRESCALER_2, 6630);    //1200 = X/(2*6630) Fclk = 15.912.000 ~fcpu
+  TIM2_TimeBaseInit(TIM2_PRESCALER_16384, 975);    //1 = X/(1024*6630) Fclk = 15.912.000 ~fcpu
+  //TIM2_TimeBaseInit(TIM2_PRESCALER_16, 9945);    //~100Hz
   
   TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
 
@@ -255,6 +253,42 @@ inline void Beep_Stop(void){
 }
 
 
+/*
+  //PC3 - LED1
+  GPIOC->CR2 &= ~0x08;  //slow slope 2MHz
+  GPIOC->DDR |= 0x08;   //Output
+  GPIOC->CR1 |= 0x08;   //Push-Pull
+  
+  //PA1 - LED2
+  GPIOA->CR2 &= ~0x02;  //slow slope 2MHz
+  GPIOA->DDR |= 0x02;   //Output
+  GPIOA->CR1 |= 0x02;   //Push-Pull
+
+*/
+
+void LED_BLUE(uint8_t value){
+  if(value){
+    GPIOC->DDR |= 0x08;   //Output
+    GPIOC->CR1 |= 0x08;   //Push-Pull
+    GPIOC->ODR &= ~0x08;
+  }
+  else{
+     GPIOC->DDR &= ~0x08;   //Input
+     GPIOC->ODR |= 0x08;    //Pull-up
+  }
+}
+
+void LED_GREEN(uint8_t value){
+  if(value){
+    GPIOA->DDR |= 0x02;   //Output
+    GPIOA->CR1 |= 0x02;   //Push-Pull
+    GPIOA->ODR &= ~0x02;
+  }
+  else{
+     GPIOA->DDR &= ~0x02;   //Input
+     GPIOA->ODR |= 0x02;    //Pull-up
+  }
+}
 
 
 #ifdef USE_FULL_ASSERT

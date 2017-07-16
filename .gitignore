@@ -45,3 +45,10 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+*.o
+*.out
+*.pbd
+Project/STM8S_StdPeriph_Template/EWSTM8/STM8S208/Obj/main.pbi
+*.pbi
+*.browse
+*.pbd
