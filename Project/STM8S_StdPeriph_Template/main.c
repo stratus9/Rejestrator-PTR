@@ -29,6 +29,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm8s.h"
 #include "main.h"
+#include "fonts.h"
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -45,7 +46,7 @@ void main(void)
   //USART_Initialization();       //1182 B -> 85 B
   
   //------------------------Init I2C-----------------------------//
-  //I2C_Initialization();
+  I2C_Initialization();
   
   
   //-----------------------Init GPIO-----------------------------//
@@ -63,9 +64,49 @@ void main(void)
   // Beep_Start();
   // Beep_Stop();
   Beep_Initialization(); 
+  
+  //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
+  
+  OLED_SendCommand(0xAE);//wy³¹cz panel OLED
+  OLED_SendCommand(0x00);//adres kolumny LOW
+  OLED_SendCommand(0x10);//adres kolumny HIGH
+  OLED_SendCommand(0x40);//adres startu linii 
+  OLED_SendCommand(0x20);//tryb adresowania strony 
+  OLED_SendCommand(0x02);
+  OLED_SendCommand(0x81);//ustaw kontrast
+  OLED_SendCommand(0xCF);
+  OLED_SendCommand(0xA1);//ustaw remapowanie
+  OLED_SendCommand(0xC0);//kierunek skanowania 
+  OLED_SendCommand(0xA6);//wyœwietlanie bez inwersji 
+  OLED_SendCommand(0xA8);//ustaw multiplex ratio 
+  OLED_SendCommand(0x3F);//1/64
+  OLED_SendCommand(0xD3);//ustaw display offset 
+  OLED_SendCommand(0x00);//bez offsetu
+  OLED_SendCommand(0xD5);//ustaw divide ratio/czêstotliwoœæ oscylatora
+  OLED_SendCommand(0x80);//100ramek/sec
+  OLED_SendCommand(0xD9);//ustaw okres pre charge
+  OLED_SendCommand(0xF1);//pre charge 15 cykli, discharge 1 cykl
+  OLED_SendCommand(0xDA);//konfiguracja wyprowadzeñ sterownika
+  OLED_SendCommand(0x12);
+  OLED_SendCommand(0xDB);//ustawienie vcomh
+  OLED_SendCommand(0x40);
+  OLED_SendCommand(0x8D);//ustawienie Charge Pump
+  OLED_SendCommand(0x14);
+  OLED_SendCommand(0xA4);//"pod³¹czenie" zawartoœci RAM do panelu OLED
+  OLED_SendCommand(0xA6);//wy³¹czenie inwersji wyœwietlania
+  OLED_SendCommand(0xAF);//w³¹cza wyœwietlacz
+    
+  Delay(100000);
+  LED_GREEN(0);
 
   while (1){
-
+    LED_BLUE(1);
+    OLED_SendCommand(0xA4);
+    Delay(300000);
+    
+    LED_BLUE(0);
+    OLED_SendCommand(0xA5);
+    Delay(300000);
   }
 }
 
@@ -119,6 +160,12 @@ void GPIO_Init_Fast(){
   GPIOC->DDR |= 0x10;   //Output
   GPIOC->CR1 |= 0x10;   //Push-Pull
   GPIOC->ODR |= 0x10;   //Enable I2C Pull-up
+  
+  //PD2 - LCD RES#
+  GPIOD->CR2 &= ~0x04;  //slow slope 2MHz
+  GPIOD->DDR |= 0x04;   //Output
+  GPIOD->CR1 |= 0x04;   //Push-Pull
+  GPIOD->ODR |= 0x04;   //Enable I2C Pull-up
 }
 
 //=======================================================================================
@@ -239,6 +286,7 @@ void Timer2_Init(){
 }
 
 void Timer2_ISR(){
+  
 }
 
 //==========================================================================================================
@@ -317,18 +365,124 @@ void I2C_Initialization(void){
 }
 
 void I2C_SendOneByte(uint8_t address, uint8_t data){
+  while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
+  
   I2C_GenerateSTART(ENABLE);
   while(!(I2C->SR1 & I2C_SR1_SB)){}
-  uint8_t dummy = I2C->SR1; // Read SR1 to clear SB bit
+  
+  I2C->SR1; // Read SR1 to clear SB bit
   I2C->DR = address | 0x00;                        // Transmit address+E
+  while(!(I2C->SR1 & I2C_SR1_TXE));
   while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
   I2C->DR = data;
-  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
   while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
   
+  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
 
+void OLED_SendCommand(uint8_t data){
+  while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
+  
+  I2C_GenerateSTART(ENABLE);
+  while(!(I2C->SR1 & I2C_SR1_SB)){}
+  
+  I2C->SR1; // Read SR1 to clear SB bit
+  I2C->DR = 0x3C<<1;                            // Transmit address+W
+  while(!(I2C->SR1 & I2C_SR1_TXE));
+  while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
+  I2C->DR = 0x00;
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
+  I2C->DR = data;
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  while(!(I2C->CR2 & I2C_CR2_STOP)){}
+}
 
+void OLED_SendData(uint8_t data){
+  while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
+  
+  I2C_GenerateSTART(ENABLE);
+  while(!(I2C->SR1 & I2C_SR1_SB)){}
+  
+  I2C->SR1; // Read SR1 to clear SB bit
+  I2C->DR = 0x3C<<1;                            // Transmit address+W
+  while(!(I2C->SR1 & I2C_SR1_TXE));
+  while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
+  I2C->DR = 0x40;
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
+  I2C->DR = data;
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  while(!(I2C->CR2 & I2C_CR2_STOP)){}
+}
+/*
+void OLED_RefreshRAM(void){
+  uint8_t i, j;
+  
+  for (i = 0; i < 8; i ++) { 
+    OLED_SendCommand(0xB0 + i);
+    SetColStart();   
+    for (j = 0; j < 128; j ++) {
+      OLED_SendData(DispBuff[j][i]); 
+    }
+  }  
+}
+*/
+
+/*
+void OLED_Clear(unsigned char fill){ 
+  uint8_t i, j;
+  
+  for (i = 0; i < 8; i ++) {
+    for (j = 0; j < 128; j ++) {
+      DispBuff[j][i] = fill;
+    }
+  }
+  
+  RefreshRAM();//zawartoœæ bufora do RAM obrazu
+} 
+*/
+
+/*
+void OLED_SetColStart(void){ 
+    OLED_SendCommand(0x00); //low
+    OLED_SendCommand(0x10); //high
+}
+*/
+
+/*
+void OLED_DrawPoint(uint8_t x, uint8_t y, uint8_t p)
+{
+  uint8_t chPos, chBx, chTemp = 0;
+  
+  if (x > 127 || y > 63) {
+    return;
+  }
+  chPos = 7 - y / 8; 
+  chBx = y % 8;
+  chTemp = 1 << (7 - chBx);
+  
+  if (p) {
+    DispBuff[x][chPos] |= chTemp;
+    
+  } else {
+    DispBuff[x][chPos] &= ~chTemp;
+  }
+}
+*/
 
 #ifdef USE_FULL_ASSERT
 
