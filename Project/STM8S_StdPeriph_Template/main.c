@@ -33,6 +33,9 @@
 
 /* Private defines -----------------------------------------------------------*/
 
+/* Private var ---------------------------------------------------------------*/
+OLED_t OLED_buffer;
+
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -66,20 +69,25 @@ void main(void)
   Beep_Initialization(); 
   
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
-  
+  OLED_Reset();
   OLED_SendCommand(0xAE);//wy³¹cz panel OLED
-  OLED_SendCommand(0x00);//adres kolumny LOW
-  OLED_SendCommand(0x10);//adres kolumny HIGH
-  OLED_SendCommand(0x40);//adres startu linii 
+  //OLED_SendCommand(0x00);//adres kolumny LOW
+  //OLED_SendCommand(0x10);//adres kolumny HIGH
+  //OLED_SendCommand(0x40);//adres startu linii 
+  
   OLED_SendCommand(0x20);//tryb adresowania strony 
   OLED_SendCommand(0x02);
+  
   OLED_SendCommand(0x81);//ustaw kontrast
   OLED_SendCommand(0xCF);
-  OLED_SendCommand(0xA1);//ustaw remapowanie
-  OLED_SendCommand(0xC0);//kierunek skanowania 
-  OLED_SendCommand(0xA6);//wyœwietlanie bez inwersji 
+  
+  OLED_SendCommand(0xA0);//ustaw remapowanie    //by³o A1
+  OLED_SendCommand(0xC8);//kierunek skanowania //by³o C0
+  
   OLED_SendCommand(0xA8);//ustaw multiplex ratio 
-  OLED_SendCommand(0x3F);//1/64
+  OLED_SendCommand(31);//1/64
+  
+  OLED_SendCommand(0xA6);//wyœwietlanie bez inwersji 
   OLED_SendCommand(0xD3);//ustaw display offset 
   OLED_SendCommand(0x00);//bez offsetu
   OLED_SendCommand(0xD5);//ustaw divide ratio/czêstotliwoœæ oscylatora
@@ -95,18 +103,23 @@ void main(void)
   OLED_SendCommand(0xA4);//"pod³¹czenie" zawartoœci RAM do panelu OLED
   OLED_SendCommand(0xA6);//wy³¹czenie inwersji wyœwietlania
   OLED_SendCommand(0xAF);//w³¹cza wyœwietlacz
-    
+  OLED_setContrast(1);
   Delay(100000);
   LED_GREEN(0);
+  
+  OLED_Clear(&OLED_buffer, 0);
+  //OLED_dispTxt(&OLED_buffer, 0,0, "Vmax: 123   m/s",12,1);
+  //OLED_dispTxt(&OLED_buffer, 0,10,"Amax: 12.1  m/s^",12,1);
+  //OLED_dispTxt(&OLED_buffer, 0,21,"Hmax: 32154 m",12,1);
+  OLED_drawPlotTemplate(&OLED_buffer, 'h');
+  
+  OLED_RefreshRAM(&OLED_buffer);
 
   while (1){
     LED_BLUE(1);
-    OLED_SendCommand(0xA4);
     Delay(300000);
-    
     LED_BLUE(0);
-    OLED_SendCommand(0xA5);
-    Delay(300000);
+    Delay(100000);
   }
 }
 
@@ -383,6 +396,13 @@ void I2C_SendOneByte(uint8_t address, uint8_t data){
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
 
+void OLED_Reset(){
+  GPIOD->ODR &= ~0x04;   //Enable I2C Pull-down
+  Delay(100000);
+  GPIOD->ODR |= 0x04;   //Enable I2C Pull-up
+  Delay(100000);
+}
+
 void OLED_SendCommand(uint8_t data){
   while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
   
@@ -428,61 +448,194 @@ void OLED_SendData(uint8_t data){
   I2C_GenerateSTOP(ENABLE);                    //Generate STOP
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
-/*
-void OLED_RefreshRAM(void){
+
+void OLED_RefreshRAM(OLED_t * OLED){
   uint8_t i, j;
   
-  for (i = 0; i < 8; i ++) { 
+  for (i = 0; i < 4; i ++) { 
     OLED_SendCommand(0xB0 + i);
-    SetColStart();   
-    for (j = 0; j < 128; j ++) {
-      OLED_SendData(DispBuff[j][i]); 
+    OLED_SetColStart();   
+    for (j = 0; j < 96; j ++) {
+      OLED_SendData(OLED->OLED_dispBuff[j][i]); 
     }
   }  
 }
-*/
 
-/*
-void OLED_Clear(unsigned char fill){ 
+void OLED_Clear(OLED_t * OLED, uint8_t fill){ 
   uint8_t i, j;
   
-  for (i = 0; i < 8; i ++) {
-    for (j = 0; j < 128; j ++) {
-      DispBuff[j][i] = fill;
+  for (i = 0; i < 4; i ++) {
+    for (j = 0; j < 96; j ++) {
+      OLED->OLED_dispBuff[j][i] = fill;
     }
   }
   
-  RefreshRAM();//zawartoœæ bufora do RAM obrazu
+  OLED_RefreshRAM(OLED);//zawartoœæ bufora do RAM obrazu
 } 
-*/
 
-/*
 void OLED_SetColStart(void){ 
     OLED_SendCommand(0x00); //low
-    OLED_SendCommand(0x10); //high
+    OLED_SendCommand(0x12); //high
 }
-*/
 
-/*
-void OLED_DrawPoint(uint8_t x, uint8_t y, uint8_t p)
-{
+
+void OLED_DrawPoint(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t p){
   uint8_t chPos, chBx, chTemp = 0;
   
-  if (x > 127 || y > 63) {
+  if (x > 95 || y > 31) {
     return;
   }
-  chPos = 7 - y / 8; 
+  chPos = y / 8; 
   chBx = y % 8;
-  chTemp = 1 << (7 - chBx);
+  chTemp = 1 << (chBx);
   
   if (p) {
-    DispBuff[x][chPos] |= chTemp;
+    OLED->OLED_dispBuff[x][chPos] |= chTemp;
     
   } else {
-    DispBuff[x][chPos] &= ~chTemp;
+    OLED->OLED_dispBuff[x][chPos] &= ~chTemp;
   }
 }
-*/
+
+//wyœwietlenie jednego znaku 
+//argumenty:
+//x,y - wspó³rzêdne na ekranie
+//Chr - kod ASCII znaku 
+//size - rozmiar 12, lub 16
+//mode=1 znak wyœwietlany normalnie, mode=0 znak wyœwietlany w negatywie
+//*******************************************************************************
+void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t size, uint8_t mode){    
+  uint8_t i, j;
+  uint8_t chTemp, chYpos0 = y;
+  
+  Chr = Chr - ' ' + 1;          
+  for (i = 0; i < size; i ++) {  
+    if (size == 12) {
+      if (mode) {
+        chTemp = c_chFont1206[Chr][i];
+      } else {
+        chTemp = ~c_chFont1206[Chr][i];
+      }
+    } else {
+      if (mode) {
+        chTemp = c_chFont1608[Chr][i];
+      } else {
+        chTemp = ~c_chFont1608[Chr][i];
+      }
+    }
+    
+    for (j = 0; j < 8; j ++) {
+      if (chTemp & 0x80) {
+        OLED_DrawPoint(OLED, x, y, 1);
+      } else {
+        OLED_DrawPoint(OLED, x, y, 0);
+      }
+      chTemp <<= 1;
+      y ++;
+      
+      if ((y - chYpos0) == size) {
+        y = chYpos0;
+        x ++;
+        break;
+      }
+    }  
+  }
+}
+
+//*********************************************************************************
+//wyœwietlenie ³añcucha znaków - napisu 
+//argumenty
+//x,y - wspó³rzêdne na ekranie
+//*txt - wskaŸnik na pocz¹tek bufora zwieraj¹cego ³añcuch znaków ASCII do wyœwietlenia
+//size - wysokoœæ znaków 12, lub 16 pikseli 
+//mode=1 znaki wyœwietlane normalnie, mode=0 znaki wyœwietlane w negatywie
+//*********************************************************************************
+void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, const uint8_t *txt, uint8_t size, uint8_t mode){
+  while (*txt != '\0') {    
+    if (x > (96 - size / 2)) {
+      x = 0;
+      y += size;
+      if (y > (32 - size)) {
+        y = x = 0;
+        //DisplayCls(0x00);
+      }
+    }
+    
+    OLED_displayChar(OLED, x, y, *txt, size, mode);
+    x += size / 2;
+    txt ++;
+  }
+}
+
+void OLED_setContrast(uint8_t value){
+  OLED_SendCommand(0x81);//ustaw kontrast
+  OLED_SendCommand(value);
+}
+
+void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t mode){
+  uint8_t tmp;
+  uint8_t x,y;
+  uint8_t dx, dy;
+  int8_t err;
+  int8_t ystep;
+  
+  uint8_t swapxy = 0;
+  
+  if ( x1 > x2 ) dx = x1-x2; else dx = x2-x1;
+  if ( y1 > y2 ) dy = y1-y2; else dy = y2-y1;
+  
+  if ( dy > dx ) 
+  {
+    swapxy = 1;
+    tmp = dx; dx =dy; dy = tmp;
+    tmp = x1; x1 =y1; y1 = tmp;
+    tmp = x2; x2 =y2; y2 = tmp;
+  }
+  if ( x1 > x2 ) 
+  {
+    tmp = x1; x1 =x2; x2 = tmp;
+    tmp = y1; y1 =y2; y2 = tmp;
+  }
+  err = dx >> 1;
+  if ( y2 > y1 ) ystep = 1; else ystep = -1;
+  y = y1;
+  
+  if ( x2 == 255 ) x2--;
+  
+  for( x = x1; x <= x2; x++ ){
+    if ( swapxy == 0 ) 
+      OLED_DrawPoint(OLED, x, y, mode); 
+    else 
+      OLED_DrawPoint(OLED, y, x, mode); 
+    err -= (uint8_t)dy;
+    if ( err < 0 ){
+      y += (uint8_t)ystep;
+      err += (uint8_t)dx;
+    }
+  }
+}
+
+void OLED_drawPlotTemplate(OLED_t * OLED, char type){
+  //----  X axis  ---------
+  OLED_drawLine(OLED,  0, 29, 90, 29, 1);
+  OLED_drawLine(OLED, 90, 29, 88, 27, 1);
+  OLED_drawLine(OLED, 90, 29, 88, 31, 1);
+  OLED_displayChar(OLED, 91, 20, 't', 12, 1);
+    
+  //---- Y axis  ----------
+  OLED_drawLine(OLED, 2, 6, 2, 31, 1);
+  OLED_drawLine(OLED, 2, 6, 0,  8, 1);
+  OLED_drawLine(OLED, 2, 6, 4,  8, 1);
+  OLED_displayChar(OLED, 4, 0, type, 12, 1);
+}
+
+void OLED_drawPlotData(OLED_t * OLED, dataset_t * data){
+  
+}
+
+void datasetPrepare(dataset_t * data){
+  
+}
 
 #ifdef USE_FULL_ASSERT
 
