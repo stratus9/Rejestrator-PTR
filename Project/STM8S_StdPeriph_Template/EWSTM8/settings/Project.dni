@@ -9,7 +9,7 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=1514417051
+Checksum=-1538544942
 [CallStack]
 ShowArgs=0
 [Disassembly]
@@ -20,6 +20,9 @@ Fmt0=uint8_t[512]	5	0
 LogEnabled=0
 GraphEnabled=0
 ShowTimeLog=1
+[Breakpoints]
+Bp0=_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.697.3" 1 0 0 0 "" 0 ""
+Count=1
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
@@ -27,9 +30,6 @@ Category=_ 0
 [TermIOLog]
 LoggingEnabled=_ 0
 LogFile=_ ""
-[Breakpoints]
-Bp0=_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.655.3" 1 0 0 0 "" 0 ""
-Count=1
 [Aliases]
 Count=0
 SuppressDialog=0

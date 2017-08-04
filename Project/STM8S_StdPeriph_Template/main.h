@@ -46,8 +46,15 @@ void OLED_Clear(OLED_t * OLED, uint8_t fill);
 void OLED_SetColStart(void);
 void OLED_DrawPoint(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t p);
 void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t size, uint8_t mode);
-void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, const uint8_t *txt, uint8_t size, uint8_t mode);
+void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t *txt, uint8_t size, uint8_t mode);
 void OLED_setContrast(uint8_t value);
+void OLED_int2string(char * string, uint32_t number);
+void OLED_paramTemplate(OLED_t * OLED);
+void OLED_dispInt(OLED_t * OLED, uint8_t x, uint8_t y, uint32_t value);
+inline void OLED_dispVelocity(OLED_t * OLED, uint32_t value);
+inline void OLED_dispAcceleration(OLED_t * OLED, uint32_t value);
+inline void OLED_dispAltitude(OLED_t * OLED, uint32_t value);
+
 void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y01, uint8_t x12, uint8_t y2, uint8_t mode);
 void OLED_drawPlotTemplate(OLED_t * OLED, char type);
 void OLED_drawPlotData(OLED_t * OLED, dataset_t * data);

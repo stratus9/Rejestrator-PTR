@@ -108,18 +108,26 @@ void main(void)
   LED_GREEN(0);
   
   OLED_Clear(&OLED_buffer, 0);
-  //OLED_dispTxt(&OLED_buffer, 0,0, "Vmax: 123   m/s",12,1);
-  //OLED_dispTxt(&OLED_buffer, 0,10,"Amax: 12.1  m/s^",12,1);
-  //OLED_dispTxt(&OLED_buffer, 0,21,"Hmax: 32154 m",12,1);
-  OLED_drawPlotTemplate(&OLED_buffer, 'h');
+  OLED_paramTemplate(&OLED_buffer);
+  //OLED_drawPlotTemplate(&OLED_buffer, 'h');
+  OLED_dispInt(&OLED_buffer, 32, 0, 12345);
+  
   
   OLED_RefreshRAM(&OLED_buffer);
-
+  uint32_t wartosc = 0;
   while (1){
+    if(wartosc < 15000) wartosc += 131;
+    else wartosc = 0;
+    OLED_dispVelocity(&OLED_buffer, wartosc);
+    OLED_dispAcceleration(&OLED_buffer, wartosc);
+    OLED_dispAltitude(&OLED_buffer, wartosc);
+    
+    
+    OLED_RefreshRAM(&OLED_buffer);
     LED_BLUE(1);
-    Delay(300000);
+    Delay(10000);
     LED_BLUE(0);
-    Delay(100000);
+    Delay(50000);
   }
 }
 
@@ -550,7 +558,7 @@ void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t 
 //size - wysokoœæ znaków 12, lub 16 pikseli 
 //mode=1 znaki wyœwietlane normalnie, mode=0 znaki wyœwietlane w negatywie
 //*********************************************************************************
-void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, const uint8_t *txt, uint8_t size, uint8_t mode){
+void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y,  uint8_t *txt, uint8_t size, uint8_t mode){
   while (*txt != '\0') {    
     if (x > (96 - size / 2)) {
       x = 0;
@@ -570,6 +578,40 @@ void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, const uint8_t *txt, uint8
 void OLED_setContrast(uint8_t value){
   OLED_SendCommand(0x81);//ustaw kontrast
   OLED_SendCommand(value);
+}
+
+void OLED_int2string(char * string, uint32_t number){
+  string[0] = (number>9999)?(number/10000 %10 + '0'):(' ');
+  string[1] = (number>999 )?((number/1000)%10 + '0'):(' ');
+  string[2] = (number>99  )?((number/100 )%10 + '0'):(' ');
+  string[3] = (number/10  )%10 + '0';
+  string[4] = '.';
+  string[5] = (number/1   )%10 + '0';
+  string[6] = '\0';
+}
+
+void OLED_paramTemplate(OLED_t * OLED){
+  OLED_dispTxt(OLED, 0, 0,"Vmax:       m/s",12,1);
+  OLED_dispTxt(OLED, 0,10,"Amax:       m/s^",12,1);
+  OLED_dispTxt(OLED, 0,21,"Hmax:       m",12,1);
+}
+
+void OLED_dispInt(OLED_t * OLED, uint8_t x, uint8_t y, uint32_t value){
+  char bufor[7];
+  OLED_int2string(bufor, value);
+  OLED_dispTxt(OLED,x,y,bufor,12,1);
+}
+
+inline void OLED_dispVelocity(OLED_t * OLED, uint32_t value){
+  OLED_dispInt(OLED, 32, 0, value);
+}
+
+inline void OLED_dispAcceleration(OLED_t * OLED, uint32_t value){
+  OLED_dispInt(OLED, 32, 10, value);
+}
+
+inline void OLED_dispAltitude(OLED_t * OLED, uint32_t value){
+  OLED_dispInt(OLED, 32, 21, value);
 }
 
 void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t mode){
