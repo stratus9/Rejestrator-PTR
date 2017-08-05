@@ -324,7 +324,7 @@
         </option>
         <option>
           <name>IccFloatSemantics</name>
-          <state>0</state>
+          <state>1</state>
         </option>
       </data>
     </settings>
@@ -768,7 +768,7 @@
         </option>
         <option>
           <name>IlinkOptMergeDuplSections</name>
-          <state>0</state>
+          <state>1</state>
         </option>
       </data>
     </settings>

@@ -30,12 +30,14 @@
 #include "stm8s.h"
 #include "main.h"
 #include "fonts.h"
+#include <math.h>
+#include <stdlib.h>
 
 /* Private defines -----------------------------------------------------------*/
 
 /* Private var ---------------------------------------------------------------*/
 OLED_t OLED_buffer;
-
+sensors_t Sensors;
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -69,65 +71,29 @@ void main(void)
   Beep_Initialization(); 
   
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
-  OLED_Reset();
-  OLED_SendCommand(0xAE);//wy³¹cz panel OLED
-  //OLED_SendCommand(0x00);//adres kolumny LOW
-  //OLED_SendCommand(0x10);//adres kolumny HIGH
-  //OLED_SendCommand(0x40);//adres startu linii 
-  
-  OLED_SendCommand(0x20);//tryb adresowania strony 
-  OLED_SendCommand(0x02);
-  
-  OLED_SendCommand(0x81);//ustaw kontrast
-  OLED_SendCommand(0xCF);
-  
-  OLED_SendCommand(0xA0);//ustaw remapowanie    //by³o A1
-  OLED_SendCommand(0xC8);//kierunek skanowania //by³o C0
-  
-  OLED_SendCommand(0xA8);//ustaw multiplex ratio 
-  OLED_SendCommand(31);//1/64
-  
-  OLED_SendCommand(0xA6);//wyœwietlanie bez inwersji 
-  OLED_SendCommand(0xD3);//ustaw display offset 
-  OLED_SendCommand(0x00);//bez offsetu
-  OLED_SendCommand(0xD5);//ustaw divide ratio/czêstotliwoœæ oscylatora
-  OLED_SendCommand(0x80);//100ramek/sec
-  OLED_SendCommand(0xD9);//ustaw okres pre charge
-  OLED_SendCommand(0xF1);//pre charge 15 cykli, discharge 1 cykl
-  OLED_SendCommand(0xDA);//konfiguracja wyprowadzeñ sterownika
-  OLED_SendCommand(0x12);
-  OLED_SendCommand(0xDB);//ustawienie vcomh
-  OLED_SendCommand(0x40);
-  OLED_SendCommand(0x8D);//ustawienie Charge Pump
-  OLED_SendCommand(0x14);
-  OLED_SendCommand(0xA4);//"pod³¹czenie" zawartoœci RAM do panelu OLED
-  OLED_SendCommand(0xA6);//wy³¹czenie inwersji wyœwietlania
-  OLED_SendCommand(0xAF);//w³¹cza wyœwietlacz
-  OLED_setContrast(1);
+  OLED_Init();
+  ADXL_init();
   Delay(100000);
   LED_GREEN(0);
   
   OLED_Clear(&OLED_buffer, 0);
-  OLED_paramTemplate(&OLED_buffer);
+  //OLED_paramTemplate(&OLED_buffer);
   //OLED_drawPlotTemplate(&OLED_buffer, 'h');
-  OLED_dispInt(&OLED_buffer, 32, 0, 12345);
-  
-  
-  OLED_RefreshRAM(&OLED_buffer);
-  uint32_t wartosc = 0;
-  while (1){
-    if(wartosc < 15000) wartosc += 131;
-    else wartosc = 0;
-    OLED_dispVelocity(&OLED_buffer, wartosc);
-    OLED_dispAcceleration(&OLED_buffer, wartosc);
-    OLED_dispAltitude(&OLED_buffer, wartosc);
     
+  OLED_RefreshRAM(&OLED_buffer);
+  while (1){
+   ADXL_read(&Sensors);
+   
+   LED_BLUE(1);
+    OLED_dispVelocity(&OLED_buffer, abs(Sensors.accX)*1000UL/256);
+    OLED_dispAcceleration(&OLED_buffer, abs(Sensors.accY)*1000UL/256);
+    OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
     
     OLED_RefreshRAM(&OLED_buffer);
-    LED_BLUE(1);
+
     Delay(10000);
     LED_BLUE(0);
-    Delay(50000);
+    Delay(100000);
   }
 }
 
@@ -144,6 +110,7 @@ void Delay(uint32_t nCount)
         nCount--;
     }
 }
+
 
 //======================================================================================
 //                              GPIO
@@ -381,8 +348,6 @@ void I2C_Initialization(void){
   I2C_DeInit();
   I2C_Init(300000, 0xAA, I2C_DUTYCYCLE_2, I2C_ACK_CURR, I2C_ADDMODE_7BIT, 16);
   I2C_Cmd(ENABLE);
-  
-  
 }
 
 void I2C_SendOneByte(uint8_t address, uint8_t data){
@@ -402,6 +367,206 @@ void I2C_SendOneByte(uint8_t address, uint8_t data){
   
   I2C_GenerateSTOP(ENABLE);                    //Generate STOP
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
+}
+
+void I2C_SendTwoBytes(uint8_t address, uint8_t data1, uint8_t data2){
+  while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
+  
+  I2C_GenerateSTART(ENABLE);
+  while(!(I2C->SR1 & I2C_SR1_SB)){}
+  
+  I2C->SR1; // Read SR1 to clear SB bit
+  I2C->DR = address | 0x00;                        // Transmit address+E
+  while(!(I2C->SR1 & I2C_SR1_TXE));
+  while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
+  I2C->DR = data1;
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+  I2C->SR3;
+  I2C->DR = data2;
+  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
+  
+  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  while(!(I2C->CR2 & I2C_CR2_STOP)){}
+}
+
+uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg){
+  uint8_t data;
+  I2C_SendOneByte(address, reg);
+  
+  uint8_t res = 1;
+    volatile uint32_t timeout;
+  
+    //Wait for the bus to be ready
+    timeout = 0x0FFF;
+    while(I2C_GetFlagStatus(I2C_FLAG_BUSBUSY));
+    if (!timeout) {
+      //Error
+      res = 0;
+      return res;
+    }
+    
+    //Send the start condition
+    I2C_GenerateSTART(ENABLE);
+    timeout = 0x0FFF;
+    while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));
+    if (!timeout) {
+      //Error
+      res = 0;
+      goto stop;
+    }
+    
+    //Send the slave address
+    I2C_Send7bitAddress(address, I2C_DIRECTION_RX);
+    timeout = 0x0FFF;
+    while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
+    if (!timeout) {
+      //Error
+      res = 0;
+      goto stop;
+    }
+    else if (SET == I2C_GetFlagStatus(I2C_FLAG_ACKNOWLEDGEFAILURE)) {
+        I2C_ClearFlag(I2C_FLAG_ACKNOWLEDGEFAILURE);
+        I2C_GenerateSTOP(ENABLE);
+        res = 0;
+        goto stop;
+    }
+    
+    I2C_AcknowledgeConfig(I2C_ACK_NONE);
+    
+  stop:
+    //Send the stop condition
+    I2C_GenerateSTOP(ENABLE);
+    
+    if (res) {
+      //Wait for the data to be received
+      timeout = 0x0FFF;
+      while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_RECEIVED));
+      if (!timeout) {
+        //Error
+        res = 0;
+      }
+      else {
+        //Get the data
+        data = I2C_ReceiveData();
+      }
+    }
+  return data;
+}
+
+uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t length){
+  I2C_SendOneByte(address, reg);
+  I2C_AcknowledgeConfig(I2C_ACK_CURR);
+  uint8_t res = 1;
+    volatile uint32_t timeout;
+    uint16_t i;
+  
+    //Wait for the bus to be ready
+    timeout = 0x0FFF;
+    while(timeout-- && I2C_GetFlagStatus(I2C_FLAG_BUSBUSY));
+    if (!timeout) {
+      //Error
+      res = 0;
+      return res;
+    }
+    
+    //Send the start condition
+    I2C_GenerateSTART(ENABLE);
+    timeout = 0x0FFF;
+    while(timeout-- && !I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));
+    if (!timeout) {
+      //Error
+      res = 0;
+      goto stop;
+    }
+    
+    //Send the slave address
+    I2C_Send7bitAddress(address, I2C_DIRECTION_RX);
+    timeout = 0x0FFF;
+    while(timeout-- && !I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
+    if (!timeout) {
+      //Error
+      res = 0;
+      goto stop;
+    }
+    else if (SET == I2C_GetFlagStatus(I2C_FLAG_ACKNOWLEDGEFAILURE)) {
+        I2C_ClearFlag(I2C_FLAG_ACKNOWLEDGEFAILURE);
+        I2C_GenerateSTOP(ENABLE);
+        res = 0;
+        goto stop;
+    }
+    
+    for (i=0; i<length; i++) {
+      if (i == length - 1) {
+        I2C_AcknowledgeConfig(I2C_ACK_NONE);
+        //Send the stop condition
+        I2C_GenerateSTOP(ENABLE);
+      }
+
+      //Wait for the data to be received
+      timeout = 0x0FFF;
+      while(timeout-- && !I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_RECEIVED));
+      if (!timeout) {
+        //Error
+        res = 0;
+      }
+      else {
+        //Get the data
+        *data = I2C_ReceiveData();
+        data++;
+      }
+    }
+    
+   
+  stop:
+    //If something bad happened, send the stop condition
+    if (!res)
+      I2C_GenerateSTOP(ENABLE);
+    
+    return res;
+}
+
+//==========================================================================================================
+//                              OLED
+//==========================================================================================================
+void OLED_Init(){
+  OLED_Reset();
+  OLED_SendCommand(0xAE);//wy³¹cz panel OLED
+  //OLED_SendCommand(0x00);//adres kolumny LOW
+  //OLED_SendCommand(0x10);//adres kolumny HIGH
+  //OLED_SendCommand(0x40);//adres startu linii 
+  
+  OLED_SendCommand(0x20);//tryb adresowania strony 
+  OLED_SendCommand(0x02);
+  
+  OLED_SendCommand(0x81);//ustaw kontrast
+  OLED_SendCommand(0xCF);
+  
+  OLED_SendCommand(0xA0);//ustaw remapowanie    //by³o A1
+  OLED_SendCommand(0xC8);//kierunek skanowania //by³o C0
+  
+  OLED_SendCommand(0xA8);//ustaw multiplex ratio 
+  OLED_SendCommand(31);//1/64
+  
+  OLED_SendCommand(0xA6);//wyœwietlanie bez inwersji 
+  OLED_SendCommand(0xD3);//ustaw display offset 
+  OLED_SendCommand(0x00);//bez offsetu
+  OLED_SendCommand(0xD5);//ustaw divide ratio/czêstotliwoœæ oscylatora
+  OLED_SendCommand(0x80);//100ramek/sec
+  OLED_SendCommand(0xD9);//ustaw okres pre charge
+  OLED_SendCommand(0xF1);//pre charge 15 cykli, discharge 1 cykl
+  OLED_SendCommand(0xDA);//konfiguracja wyprowadzeñ sterownika
+  OLED_SendCommand(0x12);
+  OLED_SendCommand(0xDB);//ustawienie vcomh
+  OLED_SendCommand(0x40);
+  OLED_SendCommand(0x8D);//ustawienie Charge Pump
+  OLED_SendCommand(0x14);
+  OLED_SendCommand(0xA4);//"pod³¹czenie" zawartoœci RAM do panelu OLED
+  OLED_SendCommand(0xA6);//wy³¹czenie inwersji wyœwietlania
+  OLED_SendCommand(0xAF);//w³¹cza wyœwietlacz
+  OLED_setContrast(1);
 }
 
 void OLED_Reset(){
@@ -581,12 +746,12 @@ void OLED_setContrast(uint8_t value){
 }
 
 void OLED_int2string(char * string, uint32_t number){
-  string[0] = (number>9999)?(number/10000 %10 + '0'):(' ');
-  string[1] = (number>999 )?((number/1000)%10 + '0'):(' ');
-  string[2] = (number>99  )?((number/100 )%10 + '0'):(' ');
-  string[3] = (number/10  )%10 + '0';
+  string[0] = (number>99999)?( number/100000 %10 + '0'):(' ');
+  string[1] = (number>9999 )?((number/10000)%10 + '0'):(' ');
+  string[2] = (number>999  )?((number/1000 )%10 + '0'):(' ');
+  string[3] = (number/100  )%10 + '0';
   string[4] = '.';
-  string[5] = (number/1   )%10 + '0';
+  string[5] = (number/10   )%10 + '0';
   string[6] = '\0';
 }
 
@@ -596,9 +761,10 @@ void OLED_paramTemplate(OLED_t * OLED){
   OLED_dispTxt(OLED, 0,21,"Hmax:       m",12,1);
 }
 
-void OLED_dispInt(OLED_t * OLED, uint8_t x, uint8_t y, uint32_t value){
+void OLED_dispInt(OLED_t * OLED, uint8_t x, uint8_t y, int32_t value){
   char bufor[7];
   OLED_int2string(bufor, value);
+  
   OLED_dispTxt(OLED,x,y,bufor,12,1);
 }
 
@@ -678,6 +844,43 @@ void OLED_drawPlotData(OLED_t * OLED, dataset_t * data){
 void datasetPrepare(dataset_t * data){
   
 }
+
+//==========================================================================================================
+//                              Dev
+//==========================================================================================================
+void dev_CheckSensors(){
+  OLED_Clear(&OLED_buffer, 0);
+  
+  if(I2C_ReadOneByte(0xEE, 0xD0) == 0x58) OLED_dispTxt(&OLED_buffer,0,0,"BMP  OK",12,1);
+  else OLED_dispTxt(&OLED_buffer,0,0,"BMP  NOPE",12,1);
+  
+  if(I2C_ReadOneByte(0x3A, 0x00) == 0xE5) OLED_dispTxt(&OLED_buffer,0,12,"ADXL OK",12,1);
+  else OLED_dispTxt(&OLED_buffer,0,12,"ADXL  NOPE",12,1);
+  
+  OLED_RefreshRAM(&OLED_buffer);
+}
+
+//==========================================================================================================
+//                              BMP280
+//==========================================================================================================
+
+//==========================================================================================================
+//                              ADXL345
+//==========================================================================================================
+void ADXL_init(){
+  I2C_SendTwoBytes(0x3A, 0x2D, 0x00);
+  I2C_SendTwoBytes(0x3A, 0x2D, 0x10);
+  I2C_SendTwoBytes(0x3A, 0x2D, 0x08);
+}
+
+void ADXL_read(sensors_t * sensor){
+  uint8_t buffer[7];
+  I2C_ReadNByte(0x3A, 0x32, buffer, 6);
+  sensor->accX = buffer[1]<<8 | buffer[0];
+  sensor->accY = buffer[3]<<8 | buffer[2];
+  sensor->accZ = buffer[5]<<8 | buffer[4];
+}
+
 
 #ifdef USE_FULL_ASSERT
 
