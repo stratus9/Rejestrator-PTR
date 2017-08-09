@@ -32,12 +32,14 @@
 #include "fonts.h"
 #include <math.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /* Private defines -----------------------------------------------------------*/
 
 /* Private var ---------------------------------------------------------------*/
 OLED_t OLED_buffer;
 sensors_t Sensors;
+bmp_t BMP;
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -51,7 +53,7 @@ void main(void)
   //USART_Initialization();       //1182 B -> 85 B
   
   //------------------------Init I2C-----------------------------//
-  I2C_Initialization();
+  I2C_Initialization();       //605 B
   
   
   //-----------------------Init GPIO-----------------------------//
@@ -61,39 +63,42 @@ void main(void)
    
   //----------------------Init Timers---------------------------//
   //Delay(10000);
-  //Timer1_Init();                //716 B
-  Timer2_Init();                //516 B
-  enableInterrupts();
+  //Timer1_Init();              //716 B
+  //Timer2_Init();                //209 B
+  enableInterrupts();           
   
   //----------------------Init Buzzer---------------------------//
   // Beep_Start();
   // Beep_Stop();
-  Beep_Initialization(); 
+  Beep_Initialization();      //130 B
   
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
-  OLED_Init();
-  ADXL_init();
+  OLED_Init();                  //169 B
+  ADXL_init();                  //37 B
   Delay(100000);
   LED_GREEN(0);
   
-  OLED_Clear(&OLED_buffer, 0);
+  OLED_Clear(&OLED_buffer, 0);  //64B 
   //OLED_paramTemplate(&OLED_buffer);
   //OLED_drawPlotTemplate(&OLED_buffer, 'h');
     
-  OLED_RefreshRAM(&OLED_buffer);
+  OLED_RefreshRAM(&OLED_buffer);        //6 B
+  
+  BMP_init(&BMP);       //241 B
+  BMP_read(&BMP);       //430 B
   while (1){
-   ADXL_read(&Sensors);
+   ADXL_read(&Sensors); //87 B
    
    LED_BLUE(1);
-    OLED_dispVelocity(&OLED_buffer, abs(Sensors.accX)*1000UL/256);
-    OLED_dispAcceleration(&OLED_buffer, abs(Sensors.accY)*1000UL/256);
-    OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
+   OLED_dispVelocity(&OLED_buffer, abs(Sensors.accX)*1000UL/256);
+   OLED_dispAcceleration(&OLED_buffer, abs(Sensors.accY)*1000UL/256);
+   OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
     
-    OLED_RefreshRAM(&OLED_buffer);
+   OLED_RefreshRAM(&OLED_buffer);
 
-    Delay(10000);
-    LED_BLUE(0);
-    Delay(100000);
+   Delay(10000);       //11 B
+   LED_BLUE(0);
+   Delay(100000);    //3 B
   }
 }
 
@@ -863,6 +868,51 @@ void dev_CheckSensors(){
 //==========================================================================================================
 //                              BMP280
 //==========================================================================================================
+void BMP_init(bmp_t * BMP) {
+  uint8_t buffer[25];
+  I2C_ReadNByte(0xEE, 0x88, buffer, 24);
+  BMP->T1 = buffer[0] | (buffer[1] << 8);
+  BMP->T2 = buffer[2] | (buffer[3] << 8);
+  BMP->T3 = buffer[4] | (buffer[5] << 8);
+  BMP->P1 = buffer[6] | (buffer[7] << 8);
+  BMP->P2 = buffer[8] | (buffer[9] << 8);
+  BMP->P3 = buffer[10] |(buffer[11] << 8);
+  BMP->P4 = buffer[12] | (buffer[13] << 8);
+  BMP->P5 = buffer[14] | (buffer[15] << 8);
+  BMP->P6 = buffer[16] | (buffer[17] << 8);
+  BMP->P7 = buffer[18] | (buffer[19] << 8);
+  BMP->P8 = buffer[20] | (buffer[21] << 8);
+  BMP->P9 = buffer[22] | (buffer[23] << 8);
+  
+  I2C_SendTwoBytes(0xEE, 0xF4, 0x3F);
+}
+
+void BMP_read(bmp_t * BMP) {
+  uint8_t buffer[7];
+  I2C_ReadNByte(0xEE, 0xF7, buffer, 6);
+  
+  BMP->UT = buffer[0];
+  BMP->UT = BMP->UT << 8 | buffer[1];
+  BMP->UT = BMP->UT << 8 | buffer[2];
+  BMP->UT >>= 4;
+  
+  BMP->UP = buffer[3];
+  BMP->UP = BMP->UP << 8 | buffer[4];
+  BMP->UP = BMP->UP << 8 | buffer[5];
+  BMP->UP >>= 4;
+  
+  //--------- Temp -------------
+  int32_t var1, var2, tfine;
+  var1  = ((((BMP->UP>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
+  var2  = (((((BMP->UP>>4) - ((int32_t)BMP->T1)) * ((BMP->UP>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
+  
+  tfine = var1 + var2;
+  BMP->temp = (tfine)>>9;
+  
+  
+
+  
+}
 
 //==========================================================================================================
 //                              ADXL345

@@ -19,6 +19,32 @@ typedef struct sensors_s{
   
 }sensors_t;
 
+typedef struct bmp_s{
+  uint16_t T1;
+  int16_t  T2;
+  int16_t  T3;
+  
+  uint16_t P1;
+  int16_t  P2;
+  int16_t  P3;
+  int16_t  P4;
+  int16_t  P5;
+  int16_t  P6;
+  int16_t  P7;
+  int16_t  P8;
+  int16_t  P9;
+  
+  int32_t UT;
+  int32_t UP;
+  
+  int32_t var1;
+  int32_t var2;
+  int32_t tfine;
+  
+  int32_t press;
+  int32_t temp;
+} bmp_t;
+
 
 /* Private function prototypes -----------------------------------------------*/
 void Delay(uint32_t);
@@ -75,6 +101,9 @@ void OLED_drawPlotData(OLED_t * OLED, dataset_t * data);
 void datasetPrepare(dataset_t * data);
 
 void dev_CheckSensors();
+
+void BMP_init(bmp_t * BMP);
+void BMP_read(bmp_t * BMP);
 
 void ADXL_init();
 void ADXL_read(sensors_t * sensor);
