@@ -79,20 +79,18 @@ void main(void)
   LED_GREEN(0);
   
   OLED_Clear(&OLED_buffer, 0);  //64B 
-  //OLED_paramTemplate(&OLED_buffer);
-  //OLED_drawPlotTemplate(&OLED_buffer, 'h');
-    
   OLED_RefreshRAM(&OLED_buffer);        //6 B
   
   BMP_init(&BMP);       //241 B
   BMP_read(&BMP);       //430 B
+  
   while (1){
    ADXL_read(&Sensors); //87 B
-   
+   BMP_read(&BMP);       //430 B
    LED_BLUE(1);
-   OLED_dispVelocity(&OLED_buffer, abs(Sensors.accX)*1000UL/256);
-   OLED_dispAcceleration(&OLED_buffer, abs(Sensors.accY)*1000UL/256);
-   OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
+   OLED_dispVelocity(&OLED_buffer, BMP.press);
+   OLED_dispAcceleration(&OLED_buffer, BMP.temp*10);
+   //OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
     
    OLED_RefreshRAM(&OLED_buffer);
 
@@ -694,13 +692,7 @@ void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t 
       } else {
         chTemp = ~c_chFont1206[Chr][i];
       }
-    } else {
-      if (mode) {
-        chTemp = c_chFont1608[Chr][i];
-      } else {
-        chTemp = ~c_chFont1608[Chr][i];
-      }
-    }
+    } 
     
     for (j = 0; j < 8; j ++) {
       if (chTemp & 0x80) {
@@ -884,6 +876,21 @@ void BMP_init(bmp_t * BMP) {
   BMP->P8 = buffer[20] | (buffer[21] << 8);
   BMP->P9 = buffer[22] | (buffer[23] << 8);
   
+  /*
+  BMP->T1 = 27504;      //buffer[0] | (buffer[1] << 8);
+  BMP->T2 = 26435;      //buffer[2] | (buffer[3] << 8);
+  BMP->T3 = -1000;      //buffer[4] | (buffer[5] << 8);
+  BMP->P1 = 36477;      //buffer[6] | (buffer[7] << 8);
+  BMP->P2 = -10685;     //buffer[8] | (buffer[9] << 8);
+  BMP->P3 = 3024;       //buffer[10] |(buffer[11] << 8);
+  BMP->P4 = 2855;       //buffer[12] | (buffer[13] << 8);
+  BMP->P5 = 140;        //buffer[14] | (buffer[15] << 8);
+  BMP->P6 = -7;         //buffer[16] | (buffer[17] << 8);
+  BMP->P7 = 15500;      //buffer[18] | (buffer[19] << 8);
+  BMP->P8 = -14600;     //buffer[20] | (buffer[21] << 8);
+  BMP->P9 = 6000;       //buffer[22] | (buffer[23] << 8);
+  */
+  
   I2C_SendTwoBytes(0xEE, 0xF4, 0x3F);
 }
 
@@ -891,25 +898,37 @@ void BMP_read(bmp_t * BMP) {
   uint8_t buffer[7];
   I2C_ReadNByte(0xEE, 0xF7, buffer, 6);
   
-  BMP->UT = buffer[0];
-  BMP->UT = BMP->UT << 8 | buffer[1];
-  BMP->UT = BMP->UT << 8 | buffer[2];
-  BMP->UT >>= 4;
-  
-  BMP->UP = buffer[3];
-  BMP->UP = BMP->UP << 8 | buffer[4];
-  BMP->UP = BMP->UP << 8 | buffer[5];
+  BMP->UP = buffer[0];
+  BMP->UP = BMP->UP << 8 | buffer[1];
+  BMP->UP = BMP->UP << 8 | buffer[2];
   BMP->UP >>= 4;
+  
+  BMP->UT = buffer[3];
+  BMP->UT = BMP->UT << 8 | buffer[4];
+  BMP->UT = BMP->UT << 8 | buffer[5];
+  BMP->UT >>= 4;
   
   //--------- Temp -------------
   int32_t var1, var2, tfine;
-  var1  = ((((BMP->UP>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
-  var2  = (((((BMP->UP>>4) - ((int32_t)BMP->T1)) * ((BMP->UP>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
+  BMP->var1  = ((((BMP->UT>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
+  BMP->var2  = (((((BMP->UT>>4) - ((int32_t)BMP->T1)) * ((BMP->UT>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
   
-  tfine = var1 + var2;
+  tfine = BMP->var1 + BMP->var2;
   BMP->temp = (tfine)>>9;
   
-  
+  //--------- Press -----------
+  BMP->fvar1 = (float)tfine/2.0 - 64000.0;
+  BMP->fvar2 = BMP->fvar1 * BMP->fvar1*((double)BMP->P6)/32768.0;
+  BMP->fvar2 = BMP->fvar2 + BMP->fvar1*((float)BMP->P5)*2.0;
+  BMP->fvar2 = (BMP->fvar2/4.0) + ((float)BMP->P4)*65536.0;
+  BMP->fvar1 = (((float)BMP->P3) * BMP->fvar1 * BMP->fvar1/524288.0 + ((float)BMP->P2) * BMP->fvar1)/524288.0;
+  BMP->fvar1 = (1.0 + BMP->fvar1/32768.0)*((float)BMP->P1);
+  BMP->p = 1048576.0-((float)BMP->UP);
+  BMP->p = (BMP->p-(BMP->fvar2/4096.0))*6250.0 / BMP->fvar1;
+  BMP->fvar1 = ((float)BMP->P9)*BMP->p*BMP->p/2147483648.0;
+  BMP->fvar2 = BMP->p*((float)BMP->P8)/32768.0;
+  BMP->p = BMP->p + (BMP->var1 + BMP->var2+((float)BMP->P7))/16.0;
+  BMP->press = (uint32_t)BMP->p;
 
   
 }

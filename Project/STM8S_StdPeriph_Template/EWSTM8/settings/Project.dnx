@@ -12,7 +12,7 @@
         <ByteLimit>50</ByteLimit>
     </Stack>
     <DebugChecksum>
-        <Checksum>73842702</Checksum>
+        <Checksum>3784433918</Checksum>
     </DebugChecksum>
     <CallStack>
         <ShowArgs>0</ShowArgs>
@@ -57,9 +57,10 @@
         <LogFile>_ ""</LogFile>
     </TermIOLog>
     <Breakpoints>
-        <Bp0>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.951.3" 0 0 0 0 "" 0 ""</Bp0>
-        <Bp1>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.90.4" 1 0 0 0 "" 0 ""</Bp1>
-        <Count>2</Count>
+        <Bp0>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.972.2" 0 0 0 0 "" 0 ""</Bp0>
+        <Bp1>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.931.3" 1 0 0 0 "" 0 ""</Bp1>
+        <Bp2>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.917.3" 1 0 0 0 "" 0 ""</Bp2>
+        <Count>3</Count>
     </Breakpoints>
     <Aliases>
         <Count>0</Count>

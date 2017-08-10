@@ -41,6 +41,10 @@ typedef struct bmp_s{
   int32_t var2;
   int32_t tfine;
   
+  float fvar1;
+  float fvar2;
+  float p;
+  
   int32_t press;
   int32_t temp;
 } bmp_t;
