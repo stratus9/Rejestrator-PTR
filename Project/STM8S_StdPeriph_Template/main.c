@@ -40,12 +40,16 @@
 OLED_t OLED_buffer;
 sensors_t Sensors;
 bmp_t BMP;
+volatile uint8_t beep = 0;
+volatile uint8_t beep_trigger = 0;
+//FLASH_pageStruct_t FLASH_pageStruct_d;
 
 /* Private functions ---------------------------------------------------------*/
 
 
 void main(void)
 {
+  //while(1){}
   //----------------Select fCPU = 16MHz--------------------------//
   CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
   
@@ -55,16 +59,16 @@ void main(void)
   //------------------------Init I2C-----------------------------//
   I2C_Initialization();       //605 B
   
-  
   //-----------------------Init GPIO-----------------------------//
-  // LED_BLUE(1/0);
-  // LED_GREEN(1/0);
   GPIO_Initialization();        //263 B -> 57 B
+  
+  //-----------------------Init SPI------------------------------//
+  //SPI_Initialization();        //
    
   //----------------------Init Timers---------------------------//
   //Delay(10000);
   //Timer1_Init();              //716 B
-  //Timer2_Init();                //209 B
+  Timer2_Init();                //209 B
   enableInterrupts();           
   
   //----------------------Init Buzzer---------------------------//
@@ -75,28 +79,51 @@ void main(void)
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
   OLED_Init();                  //169 B
   ADXL_init();                  //37 B
-  Delay(100000);
+  BMP_init(&BMP);               //241 B
   LED_GREEN(0);
   
   OLED_Clear(&OLED_buffer, 0);  //64B 
+  OLED_paramTemplate(&OLED_buffer);
   OLED_RefreshRAM(&OLED_buffer);        //6 B
   
-  BMP_init(&BMP);       //241 B
-  BMP_read(&BMP);       //430 B
   
+  //FLASH_PowerUp();
+  
+  BMP_read(&BMP);       //430 B
+  BMP.max_pressure = BMP.press;
+  BMP.min_pressure = BMP.press;
+  BMP.max_altitude = 0;
+  
+  uint8_t framecount = 0;
   while (1){
    ADXL_read(&Sensors); //87 B
    BMP_read(&BMP);       //430 B
    LED_BLUE(1);
-   OLED_dispVelocity(&OLED_buffer, BMP.press);
-   OLED_dispAcceleration(&OLED_buffer, BMP.temp*10);
-   //OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
+   if(BMP.max_pressure < BMP.press) BMP.max_pressure = BMP.press;
+   if(BMP.min_pressure > BMP.press) BMP.min_pressure = BMP.press;
+   
+   BMP.altitude = (int32_t)BMP_altitude(BMP.min_pressure, BMP.max_pressure);
+   if(BMP.max_altitude < BMP.altitude) BMP.max_altitude = BMP.altitude;
+   
+   if((BMP.max_altitude > 50) && (BMP.altitude < 20)) beep_trigger = 1;
+   else beep_trigger = 0;
+   
+   if(Sensors.max_acc < Sensors.accY) Sensors.max_acc = Sensors.accY;
+   
+   framecount++;
+   if(framecount > 4){
+     framecount = 0;
+     OLED_dispVelocity(&OLED_buffer, 0);
+     OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
+     OLED_dispAltitude(&OLED_buffer, labs(BMP.max_altitude));
+     //OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
     
-   OLED_RefreshRAM(&OLED_buffer);
+     OLED_RefreshRAM(&OLED_buffer);
+   }
 
-   Delay(10000);       //11 B
+   Delay(1000);       //11 B
    LED_BLUE(0);
-   Delay(100000);    //3 B
+   Delay(2000);    //3 B
   }
 }
 
@@ -222,6 +249,148 @@ void USART_SendChar(char value){
 }
 
 //==========================================================================================================
+//                              SPI
+//==========================================================================================================
+void SPI_Initialization(){
+  SPI_DeInit();       //25 B
+  SPI->CR1 = 0x28 | 0x04;      //MSB first, x64 prescaler, polarity Low, Master
+  SPI->CR2 = 0x02 | 0x01;      //Full duplex, Software slave management enabled, Master
+  /* SPI Enable */
+  SPI_Cmd(ENABLE);    //29 B
+}
+
+inline void SPI_wait(){
+  while (SPI_GetFlagStatus(SPI_FLAG_TXE)== RESET){}  
+}
+
+void SPI_sendByte(uint8_t value){
+  //SPI_wait();
+  while (!(SPI->SR & SPI_FLAG_TXE)){} 
+  SPI->DR = value;
+}
+
+uint8_t SPI_ReadByte(){
+  uint8_t Data = 0;
+
+  /* Wait until the transmit buffer is empty */
+  while (SPI_GetFlagStatus(SPI_FLAG_TXE) == RESET);
+  /* Send the byte */
+  SPI_SendData(0x00);
+
+  /* Wait until a data is received */
+  while (SPI_GetFlagStatus(SPI_FLAG_BSY)== SET);
+  while (SPI_GetFlagStatus(SPI_FLAG_RXNE) == RESET);
+  /* Get the received data */
+  Data = SPI_ReceiveData();
+
+  /* Return the shifted data */
+  return Data;
+}
+
+uint8_t SPI_RWByte(uint8_t value){
+  uint8_t Data = 0;
+
+  /* Wait until the transmit buffer is empty */
+  while (SPI_GetFlagStatus(SPI_FLAG_TXE)== RESET){}
+  /* Send the byte */
+  SPI_SendData(value);
+  while (SPI_GetFlagStatus(SPI_FLAG_RXNE) == RESET);
+  Data = SPI_ReceiveData();
+  
+  SPI_ClearRXBuffer();
+  /* Return the shifted data */
+  return Data;
+}
+
+void SPI_ClearRXBuffer(){
+  while (SPI_GetFlagStatus(SPI_FLAG_RXNE) == SET){
+    SPI_ReceiveData();
+  }
+}
+
+void FLASH_PowerUp(){
+  FLASH_CS(1);
+  SPI_RWByte(0xAB);
+  FLASH_CS(0);
+}
+
+uint16_t FLASH_ReadID(){
+	FLASH_CS(1);
+	SPI_RWByte(0x90);
+	SPI_RWByte(0x00);
+	SPI_RWByte(0x00);
+	SPI_RWByte(0x00);
+	uint16_t tmp = SPI_RWByte(0) << 8;
+	tmp |= SPI_RWByte(0);
+	FLASH_CS(0);
+	return tmp;
+}
+
+void FLASH_CS(uint8_t value) {
+  if(value){
+    GPIOA->DDR |= 0x08;   //Output
+    GPIOA->CR1 |= 0x08;   //Push-Pull
+    GPIOA->ODR &= ~0x08;
+  }
+  else{
+     GPIOA->DDR |= 0x08;   //Output
+    GPIOA->CR1 |= 0x08;   //Push-Pull
+    GPIOA->ODR |= 0x08;
+  }
+}
+
+void FLASH_1byteCommand(uint8_t value){
+	FLASH_CS(1);
+	SPI_RWByte(value);
+	FLASH_CS(0);
+}
+
+void FLASH_WriteEnable(uint8_t value){
+	if(value) FLASH_1byteCommand(0x06);
+	else FLASH_1byteCommand(0x04);
+}
+
+void FLASH_arrayRead(uint32_t address, uint8_t * array, uint32_t length){
+	FLASH_waitForReady();
+	FLASH_CS(1);
+	SPI_RWByte(0x03);	//READ
+	SPI_RWByte((address>>16) & 0xFF);
+	SPI_RWByte((address>>8) & 0xFF);
+	SPI_RWByte(address & 0xFF);
+	for (uint32_t i=0; i<length; i++){
+		array[i] = SPI_RWByte(0);
+	}
+	FLASH_CS(0);
+}
+
+void FLASH_waitForReady(void){
+	while(FLASH_status() & 0x01) Delay(1000);
+}
+
+uint8_t FLASH_status(void){
+	FLASH_CS(1);
+	SPI_RWByte(0x05);	//READ
+	uint8_t stat = SPI_RWByte(0);
+	FLASH_CS(0);
+	return stat;
+}
+
+void FLASH_pageWrite(uint32_t page, uint8_t * array, uint16_t length){  //strona ma 256B
+	uint32_t address = page<<8;
+	FLASH_waitForReady();
+	FLASH_WriteEnable(1);
+	FLASH_CS(1);
+	SPI_RWByte(0x02);	//Page program
+	SPI_RWByte((address>>16) & 0xFF);
+	SPI_RWByte((address>>8) & 0xFF);
+	SPI_RWByte(address & 0xFF);
+	for(uint16_t i = 0; i < length; i++){
+		SPI_RWByte(*array++);
+	}
+	FLASH_CS(0);
+}
+
+//==========================================================================================================
 //                              Timer
 //==========================================================================================================
 
@@ -267,7 +436,7 @@ void Timer1_Init(){
 
 void Timer2_Init(){
   TIM2_DeInit();
-  TIM2_TimeBaseInit(TIM2_PRESCALER_16384, 975);    //1 = X/(1024*6630) Fclk = 15.912.000 ~fcpu
+  TIM2_TimeBaseInit(TIM2_PRESCALER_16384, 97);    //10 = X/(1024*6630) Fclk = 15.912.000 ~fcpu
   //TIM2_TimeBaseInit(TIM2_PRESCALER_16, 9945);    //~100Hz
   
   TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
@@ -276,8 +445,13 @@ void Timer2_Init(){
   TIM2_Cmd(ENABLE);
 }
 
-void Timer2_ISR(){
-  
+void Timer2_ISR(){    
+  if(beep_trigger){
+    beep++;
+    if(beep > 20) beep = 0;
+    if(beep == 4) Beep_Start();
+    else Beep_Stop();
+  }
 }
 
 //==========================================================================================================
@@ -349,8 +523,33 @@ void LED_GREEN(uint8_t value){
 
 void I2C_Initialization(void){
   I2C_DeInit();
-  I2C_Init(300000, 0xAA, I2C_DUTYCYCLE_2, I2C_ACK_CURR, I2C_ADDMODE_7BIT, 16);
+  //I2C_Init(300000, 0xAA, I2C_DUTYCYCLE_2, I2C_ACK_CURR, I2C_ADDMODE_7BIT, 16);
+  I2C_InitFast();
   I2C_Cmd(ENABLE);
+}
+
+void I2C_InitFast(){
+  /*------------------------- I2C FREQ Configuration ------------------------*/
+  I2C->FREQR = 16;
+
+  /*--------------------------- I2C CCR Configuration ------------------------*/
+  I2C->CR1 &= (uint8_t)(~0x01); // Disable I2C to configure TRISER
+
+  I2C->TRISER = 6; // Set Maximum Rise Time: 300ns max in Fast Mode
+
+
+  /* Write CCR with new calculated value */
+  I2C->CCRL = 8;
+  I2C->CCRH = 0x80;
+
+  I2C->CR1 |= 0x01; // Enable I2C 
+
+  /* Configure I2C acknowledgement */
+  I2C_AcknowledgeConfig(I2C_ACK_CURR);
+
+  /*--------------------------- I2C OAR Configuration ------------------------*/
+  I2C->OARL = 0xAA;
+  I2C->OARH = 0x40;
 }
 
 void I2C_SendOneByte(uint8_t address, uint8_t data){
@@ -910,27 +1109,37 @@ void BMP_read(bmp_t * BMP) {
   
   //--------- Temp -------------
   int32_t var1, var2, tfine;
-  BMP->var1  = ((((BMP->UT>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
-  BMP->var2  = (((((BMP->UT>>4) - ((int32_t)BMP->T1)) * ((BMP->UT>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
+  var1  = ((((BMP->UT>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
+  var2  = (((((BMP->UT>>4) - ((int32_t)BMP->T1)) * ((BMP->UT>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
   
-  tfine = BMP->var1 + BMP->var2;
+  tfine = var1 + var2;
   BMP->temp = (tfine)>>9;
   
   //--------- Press -----------
-  BMP->fvar1 = (float)tfine/2.0 - 64000.0;
-  BMP->fvar2 = BMP->fvar1 * BMP->fvar1*((double)BMP->P6)/32768.0;
-  BMP->fvar2 = BMP->fvar2 + BMP->fvar1*((float)BMP->P5)*2.0;
-  BMP->fvar2 = (BMP->fvar2/4.0) + ((float)BMP->P4)*65536.0;
-  BMP->fvar1 = (((float)BMP->P3) * BMP->fvar1 * BMP->fvar1/524288.0 + ((float)BMP->P2) * BMP->fvar1)/524288.0;
-  BMP->fvar1 = (1.0 + BMP->fvar1/32768.0)*((float)BMP->P1);
-  BMP->p = 1048576.0-((float)BMP->UP);
-  BMP->p = (BMP->p-(BMP->fvar2/4096.0))*6250.0 / BMP->fvar1;
-  BMP->fvar1 = ((float)BMP->P9)*BMP->p*BMP->p/2147483648.0;
-  BMP->fvar2 = BMP->p*((float)BMP->P8)/32768.0;
-  BMP->p = BMP->p + (BMP->var1 + BMP->var2+((float)BMP->P7))/16.0;
-  BMP->press = (uint32_t)BMP->p;
+  float fvar1=0.0, fvar2=0.0, p=0.0;
+  fvar1 = (float)tfine/2.0 - 64000.0;
+  fvar2 = fvar1 * fvar1*((double)BMP->P6)/32768.0;
+  fvar2 = fvar2 + fvar1*((float)BMP->P5)*2.0;
+  fvar2 = (fvar2/4.0) + ((float)BMP->P4)*65536.0;
+  fvar1 = (((float)BMP->P3) * fvar1 * fvar1/524288.0 + ((float)BMP->P2) * fvar1)/524288.0;
+  fvar1 = (1.0 + fvar1/32768.0)*((float)BMP->P1);
+  p = 1048576.0-((float)BMP->UP);
+  p = (p-(fvar2/4096.0))*6250.0 / fvar1;
+  fvar1 = ((float)BMP->P9)*p*p/2147483648.0;
+  fvar2 = p*((float)BMP->P8)/32768.0;
+  p = p + (fvar1 + fvar2+((float)BMP->P7))/16.0;
+  BMP->press = (uint32_t)p;
+}
 
-  
+float BMP_altitude(uint32_t startPress, uint32_t currPress){
+   float x1, x2, x3, x4;
+   //x1 = (1.0-powf(currPress/startPress, 0.1902632365))*43538.0;
+   //x1 = 297.15/9.8*297.15*logf(startPress/currPress);
+   x1 = (float)currPress/(float)startPress;
+   x2 = -4863.0*x1*x1*x1;
+   x3 =  16830.0*x1*x1;
+   x4 = -27490.0*x1;
+   return (x2 + x3 + x4 + 15520)*100.0;
 }
 
 //==========================================================================================================
@@ -940,6 +1149,7 @@ void ADXL_init(){
   I2C_SendTwoBytes(0x3A, 0x2D, 0x00);
   I2C_SendTwoBytes(0x3A, 0x2D, 0x10);
   I2C_SendTwoBytes(0x3A, 0x2D, 0x08);
+  I2C_SendTwoBytes(0x3A, 0x31, 0x0B);   // +/- 16g Full ress
 }
 
 void ADXL_read(sensors_t * sensor){

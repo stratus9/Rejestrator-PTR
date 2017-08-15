@@ -17,6 +17,11 @@ typedef struct sensors_s{
   int16_t accY;
   int16_t accZ;
   
+  int16_t min_acc;
+  int16_t max_acc;
+
+  uint16_t tmp;
+  
 }sensors_t;
 
 typedef struct bmp_s{
@@ -37,17 +42,49 @@ typedef struct bmp_s{
   int32_t UT;
   int32_t UP;
   
-  int32_t var1;
-  int32_t var2;
+  //int32_t var1;
+  //int32_t var2;
   int32_t tfine;
+  int32_t T;
   
-  float fvar1;
-  float fvar2;
-  float p;
+  //float fvar1;
+  //float fvar2;
+  //float p;
   
   int32_t press;
+  int32_t min_pressure;
+  int32_t max_pressure;
   int32_t temp;
+  int32_t altitude;
+  int32_t max_altitude;
+  
+  //float x1, x2, x3, x4;
 } bmp_t;
+
+typedef union {
+	uint8_t array[32];
+	struct{
+		float pressure;
+                float pressure_diff;
+                uint8_t state;
+                int32_t altitude;
+                int32_t temperature;
+                uint16_t Vbat;
+                int16_t accX;
+                int16_t accY;
+                int16_t accZ;
+                int16_t velocity;
+		};
+} FLASH_dataStruct_t;
+
+typedef struct{
+	uint16_t pageNo;
+	uint8_t position;
+	union{
+		FLASH_dataStruct_t FLASH_dataStruct[8];
+		uint8_t data[256];
+		};
+}FLASH_pageStruct_t;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,18 +101,35 @@ void USART_SendChar(char);
 void GPIO_Initialization(void);
 void GPIO_Init_Fast();
 
+void SPI_Initialization();
+inline void SPI_wait();
+void SPI_sendByte(uint8_t value);
+uint8_t SPI_ReadByte();
+uint8_t SPI_RWByte(uint8_t value);
+void SPI_ClearRXBuffer();
+void FLASH_CS(uint8_t value);
+uint16_t FLASH_ReadID();
+void FLASH_PowerUp();
+void FLASH_1byteCommand(uint8_t value);
+void FLASH_WriteEnable(uint8_t value);
+void FLASH_arrayRead(uint32_t address, uint8_t * array, uint32_t length);
+void FLASH_waitForReady();
+uint8_t FLASH_status();
+void FLASH_pageWrite(uint32_t page, uint8_t * array, uint16_t length);
+
 void Timer1_Init();
 void Timer2_Init();
 void Timer2_ISR();
 
-void Beep_Initialization(void);
-inline void Beep_Start(void);
-inline void Beep_Stop(void);
+void Beep_Initialization();
+inline void Beep_Start();
+inline void Beep_Stop();
 
 void LED_BLUE(uint8_t value);
 void LED_GREEN(uint8_t value);
 
-void I2C_Initialization(void);
+void I2C_Initialization();
+void I2C_InitFast();
 void I2C_SendOneByte(uint8_t address, uint8_t data);
 void I2C_SendTwoBytes(uint8_t address, uint8_t data1, uint8_t data2);
 uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg);
@@ -108,6 +162,7 @@ void dev_CheckSensors();
 
 void BMP_init(bmp_t * BMP);
 void BMP_read(bmp_t * BMP);
+float BMP_altitude(uint32_t startPress, uint32_t currPress);
 
 void ADXL_init();
 void ADXL_read(sensors_t * sensor);
