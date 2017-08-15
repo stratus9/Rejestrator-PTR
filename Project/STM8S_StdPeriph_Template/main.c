@@ -30,9 +30,9 @@
 #include "stm8s.h"
 #include "main.h"
 #include "fonts.h"
-#include <math.h>
+//#include <math.h>
 #include <stdlib.h>
-#include <stdint.h>
+//#include <stdint.h>
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -51,10 +51,10 @@ void main(void)
 {
   //while(1){}
   //----------------Select fCPU = 16MHz--------------------------//
-  CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
+  CLK->CKDIVR = 0x00;    //CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
   
   //----------------------Init UART------------------------------//
-  //USART_Initialization();       //1182 B -> 85 B
+  USART_Initialization();       //1182 B -> 85 B
   
   //------------------------Init I2C-----------------------------//
   I2C_Initialization();       //605 B
@@ -63,7 +63,7 @@ void main(void)
   GPIO_Initialization();        //263 B -> 57 B
   
   //-----------------------Init SPI------------------------------//
-  //SPI_Initialization();        //
+  SPI_Initialization();        //
    
   //----------------------Init Timers---------------------------//
   //Delay(10000);
@@ -256,7 +256,7 @@ void SPI_Initialization(){
   SPI->CR1 = 0x28 | 0x04;      //MSB first, x64 prescaler, polarity Low, Master
   SPI->CR2 = 0x02 | 0x01;      //Full duplex, Software slave management enabled, Master
   /* SPI Enable */
-  SPI_Cmd(ENABLE);    //29 B
+  SPI->CR1 |= SPI_CR1_SPE; /* Enable the SPI peripheral*/
 }
 
 inline void SPI_wait(){
@@ -273,15 +273,15 @@ uint8_t SPI_ReadByte(){
   uint8_t Data = 0;
 
   /* Wait until the transmit buffer is empty */
-  while (SPI_GetFlagStatus(SPI_FLAG_TXE) == RESET);
+  while (!(SPI->SR & SPI_FLAG_TXE));
   /* Send the byte */
-  SPI_SendData(0x00);
+  SPI->DR = 0x00;
 
   /* Wait until a data is received */
-  while (SPI_GetFlagStatus(SPI_FLAG_BSY)== SET);
-  while (SPI_GetFlagStatus(SPI_FLAG_RXNE) == RESET);
+  while ((SPI->SR & SPI_FLAG_BSY));
+  while (!(SPI->SR & SPI_FLAG_RXNE));
   /* Get the received data */
-  Data = SPI_ReceiveData();
+  Data = SPI->DR;
 
   /* Return the shifted data */
   return Data;
@@ -291,11 +291,11 @@ uint8_t SPI_RWByte(uint8_t value){
   uint8_t Data = 0;
 
   /* Wait until the transmit buffer is empty */
-  while (SPI_GetFlagStatus(SPI_FLAG_TXE)== RESET){}
+  while (!(SPI->SR & SPI_FLAG_TXE)){}
   /* Send the byte */
-  SPI_SendData(value);
-  while (SPI_GetFlagStatus(SPI_FLAG_RXNE) == RESET);
-  Data = SPI_ReceiveData();
+  SPI->DR = value;
+  while (!(SPI->SR & SPI_FLAG_RXNE));
+  Data = SPI->DR;
   
   SPI_ClearRXBuffer();
   /* Return the shifted data */
@@ -303,7 +303,7 @@ uint8_t SPI_RWByte(uint8_t value){
 }
 
 void SPI_ClearRXBuffer(){
-  while (SPI_GetFlagStatus(SPI_FLAG_RXNE) == SET){
+  while ((SPI->SR & SPI_FLAG_RXNE)){
     SPI_ReceiveData();
   }
 }
@@ -435,14 +435,15 @@ void Timer1_Init(){
 }
 
 void Timer2_Init(){
-  TIM2_DeInit();
+  //TIM2_DeInit();
   TIM2_TimeBaseInit(TIM2_PRESCALER_16384, 97);    //10 = X/(1024*6630) Fclk = 15.912.000 ~fcpu
   //TIM2_TimeBaseInit(TIM2_PRESCALER_16, 9945);    //~100Hz
   
-  TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
+  //TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
+  TIM2->IER |= TIM2_IT_UPDATE;
 
   /* TIM1 counter enable */
-  TIM2_Cmd(ENABLE);
+  TIM2->CR1 |= (uint8_t)TIM2_CR1_CEN;
 }
 
 void Timer2_ISR(){    
@@ -459,20 +460,21 @@ void Timer2_ISR(){
 //==========================================================================================================
 
 void Beep_Initialization(void){
-  BEEP_DeInit();
-  BEEP->CSR &= 0xE0;
-  BEEP->CSR |= 10;
+  BEEP->CSR = (10) | 0x40;
   
-  BEEP_Init(BEEP_FREQUENCY_2KHZ);       //BEEP_FREQUENCY_1KHZ, BEEP_FREQUENCY_2KHZ, BEEP_FREQUENCY_4KHZ
-  BEEP_Cmd(DISABLE);
+  //BEEP_Init(BEEP_FREQUENCY_2KHZ);       //BEEP_FREQUENCY_1KHZ, BEEP_FREQUENCY_2KHZ, BEEP_FREQUENCY_4KHZ
+  
+  /* Enable the BEEP peripheral */
+    BEEP->CSR |= BEEP_CSR_BEEPEN;
 }
 
 inline void Beep_Start(void){
-  BEEP_Cmd(ENABLE);
+  /* Enable the BEEP peripheral */
+    BEEP->CSR |= BEEP_CSR_BEEPEN;
 }
 
 inline void Beep_Stop(void){
-  BEEP_Cmd(DISABLE);
+  BEEP->CSR &= (~BEEP_CSR_BEEPEN);
 }
 
 
@@ -522,7 +524,7 @@ void LED_GREEN(uint8_t value){
 //==========================================================================================================
 
 void I2C_Initialization(void){
-  I2C_DeInit();
+  //I2C_DeInit();
   //I2C_Init(300000, 0xAA, I2C_DUTYCYCLE_2, I2C_ACK_CURR, I2C_ADDMODE_7BIT, 16);
   I2C_InitFast();
   I2C_Cmd(ENABLE);
@@ -545,7 +547,9 @@ void I2C_InitFast(){
   I2C->CR1 |= 0x01; // Enable I2C 
 
   /* Configure I2C acknowledgement */
-  I2C_AcknowledgeConfig(I2C_ACK_CURR);
+  //I2C_AcknowledgeConfig(I2C_ACK_CURR);
+  I2C->CR2 |= I2C_CR2_ACK;
+  I2C->CR2 &= (uint8_t)(~I2C_CR2_POS);
 
   /*--------------------------- I2C OAR Configuration ------------------------*/
   I2C->OARL = 0xAA;
@@ -555,7 +559,7 @@ void I2C_InitFast(){
 void I2C_SendOneByte(uint8_t address, uint8_t data){
   while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
   
-  I2C_GenerateSTART(ENABLE);
+  I2C->CR2 |= I2C_CR2_START;    //I2C->CR2 |= I2C_CR2_START;
   while(!(I2C->SR1 & I2C_SR1_SB)){}
   
   I2C->SR1; // Read SR1 to clear SB bit
@@ -567,14 +571,14 @@ void I2C_SendOneByte(uint8_t address, uint8_t data){
   I2C->DR = data;
   while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
   
-  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  I2C->CR2 |= I2C_CR2_STOP;     //I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
 
 void I2C_SendTwoBytes(uint8_t address, uint8_t data1, uint8_t data2){
   while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
   
-  I2C_GenerateSTART(ENABLE);
+  I2C->CR2 |= I2C_CR2_START;    //I2C->CR2 |= I2C_CR2_START;
   while(!(I2C->SR1 & I2C_SR1_SB)){}
   
   I2C->SR1; // Read SR1 to clear SB bit
@@ -590,7 +594,7 @@ void I2C_SendTwoBytes(uint8_t address, uint8_t data1, uint8_t data2){
   I2C->DR = data2;
   while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
   
-  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  I2C->CR2 |= I2C_CR2_STOP;     //I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
 
@@ -611,7 +615,7 @@ uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg){
     }
     
     //Send the start condition
-    I2C_GenerateSTART(ENABLE);
+    I2C->CR2 |= I2C_CR2_START;  //I2C->CR2 |= I2C_CR2_START;
     timeout = 0x0FFF;
     while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));
     if (!timeout) {
@@ -621,7 +625,8 @@ uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg){
     }
     
     //Send the slave address
-    I2C_Send7bitAddress(address, I2C_DIRECTION_RX);
+    //I2C_Send7bitAddress(address, I2C_DIRECTION_RX);
+    I2C->DR = (uint8_t)(address | I2C_DIRECTION_RX);
     timeout = 0x0FFF;
     while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
     if (!timeout) {
@@ -631,16 +636,16 @@ uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg){
     }
     else if (SET == I2C_GetFlagStatus(I2C_FLAG_ACKNOWLEDGEFAILURE)) {
         I2C_ClearFlag(I2C_FLAG_ACKNOWLEDGEFAILURE);
-        I2C_GenerateSTOP(ENABLE);
+        I2C->CR2 |= I2C_CR2_STOP;       //I2C->CR2 |= I2C_CR2_STOP;
         res = 0;
         goto stop;
     }
     
-    I2C_AcknowledgeConfig(I2C_ACK_NONE);
+    I2C->CR2 &= (uint8_t)(~I2C_CR2_ACK);
     
   stop:
     //Send the stop condition
-    I2C_GenerateSTOP(ENABLE);
+    I2C->CR2 |= I2C_CR2_STOP;
     
     if (res) {
       //Wait for the data to be received
@@ -652,7 +657,7 @@ uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg){
       }
       else {
         //Get the data
-        data = I2C_ReceiveData();
+        data = I2C->DR;
       }
     }
   return data;
@@ -660,7 +665,8 @@ uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg){
 
 uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t length){
   I2C_SendOneByte(address, reg);
-  I2C_AcknowledgeConfig(I2C_ACK_CURR);
+  I2C->CR2 |= I2C_CR2_ACK;
+  I2C->CR2 &= (uint8_t)(~I2C_CR2_POS);
   uint8_t res = 1;
     volatile uint32_t timeout;
     uint16_t i;
@@ -675,7 +681,7 @@ uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t leng
     }
     
     //Send the start condition
-    I2C_GenerateSTART(ENABLE);
+    I2C->CR2 |= I2C_CR2_START;
     timeout = 0x0FFF;
     while(timeout-- && !I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));
     if (!timeout) {
@@ -685,7 +691,8 @@ uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t leng
     }
     
     //Send the slave address
-    I2C_Send7bitAddress(address, I2C_DIRECTION_RX);
+    //I2C_Send7bitAddress(address, I2C_DIRECTION_RX);
+    I2C->DR = (uint8_t)(address | I2C_DIRECTION_RX);
     timeout = 0x0FFF;
     while(timeout-- && !I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
     if (!timeout) {
@@ -695,16 +702,16 @@ uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t leng
     }
     else if (SET == I2C_GetFlagStatus(I2C_FLAG_ACKNOWLEDGEFAILURE)) {
         I2C_ClearFlag(I2C_FLAG_ACKNOWLEDGEFAILURE);
-        I2C_GenerateSTOP(ENABLE);
+        I2C->CR2 |= I2C_CR2_STOP;
         res = 0;
         goto stop;
     }
     
     for (i=0; i<length; i++) {
       if (i == length - 1) {
-        I2C_AcknowledgeConfig(I2C_ACK_NONE);
+        I2C->CR2 &= (uint8_t)(~I2C_CR2_ACK);
         //Send the stop condition
-        I2C_GenerateSTOP(ENABLE);
+        I2C->CR2 |= I2C_CR2_STOP;
       }
 
       //Wait for the data to be received
@@ -716,7 +723,7 @@ uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t leng
       }
       else {
         //Get the data
-        *data = I2C_ReceiveData();
+        *data = I2C->DR;
         data++;
       }
     }
@@ -725,7 +732,7 @@ uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t leng
   stop:
     //If something bad happened, send the stop condition
     if (!res)
-      I2C_GenerateSTOP(ENABLE);
+      I2C->CR2 |= I2C_CR2_STOP;
     
     return res;
 }
@@ -781,7 +788,7 @@ void OLED_Reset(){
 void OLED_SendCommand(uint8_t data){
   while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
   
-  I2C_GenerateSTART(ENABLE);
+  I2C->CR2 |= I2C_CR2_START;
   while(!(I2C->SR1 & I2C_SR1_SB)){}
   
   I2C->SR1; // Read SR1 to clear SB bit
@@ -797,14 +804,14 @@ void OLED_SendCommand(uint8_t data){
   I2C->DR = data;
   while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
   
-  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
 
 void OLED_SendData(uint8_t data){
   while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
   
-  I2C_GenerateSTART(ENABLE);
+  I2C->CR2 |= I2C_CR2_START;
   while(!(I2C->SR1 & I2C_SR1_SB)){}
   
   I2C->SR1; // Read SR1 to clear SB bit
@@ -820,7 +827,7 @@ void OLED_SendData(uint8_t data){
   I2C->DR = data;
   while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
   
-  I2C_GenerateSTOP(ENABLE);                    //Generate STOP
+  I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
   while(!(I2C->CR2 & I2C_CR2_STOP)){}
 }
 
@@ -976,6 +983,7 @@ inline void OLED_dispAltitude(OLED_t * OLED, uint32_t value){
   OLED_dispInt(OLED, 32, 21, value);
 }
 
+/*
 void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t mode){
   uint8_t tmp;
   uint8_t x,y;
@@ -1018,7 +1026,9 @@ void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2
     }
   }
 }
+*/
 
+/*
 void OLED_drawPlotTemplate(OLED_t * OLED, char type){
   //----  X axis  ---------
   OLED_drawLine(OLED,  0, 29, 90, 29, 1);
@@ -1032,6 +1042,7 @@ void OLED_drawPlotTemplate(OLED_t * OLED, char type){
   OLED_drawLine(OLED, 2, 6, 4,  8, 1);
   OLED_displayChar(OLED, 4, 0, type, 12, 1);
 }
+*/
 
 void OLED_drawPlotData(OLED_t * OLED, dataset_t * data){
   
