@@ -229,7 +229,7 @@ D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\Common
 -D_RTSL_COMPARE_T=unsigned char
 -D__CODE_MODEL__=__SMALL_CODE_MODEL__
 -D__CORE__=__STM8__
--D__DATA_MODEL__=__SMALL_DATA_MODEL__
+-D__DATA_MODEL__=__MEDIUM_DATA_MODEL__
 -D__ICCSTM8__=1
 -D__LARGE_CODE_MODEL__=3
 -D__LARGE_DATA_MODEL__=3
@@ -243,7 +243,6 @@ D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\Common
 -D__HAS_LOCATED_DECLARATION__=1
 -D__HAS_LOCATED_WITH_INIT__=1
 -D__IAR_COMPILERBASE__=595714
--D__RO_PLACEMENT_MUST_BE_SAME__=1
 -D__STDC__=1
 -D__STDC_VERSION__=199901L
 -D__STDC_HOSTED__=1
@@ -270,8 +269,8 @@ D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\Common
 -D__EDG_SYSV=0
 -D__EDG_ANSIC=1
 -D__EDG_CPP11_IL_EXTENSIONS_SUPPORTED=1
--D_DLIB_CONFIG_FILE_HEADER_NAME="C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\stm8\LIB\dlstm8ssn.h"
--D_DLIB_CONFIG_FILE_STRING="C:\\Program Files (x86)\\IAR Systems\\Embedded Workbench 8.0\\stm8\\LIB\\dlstm8ssn.h"
+-D_DLIB_CONFIG_FILE_HEADER_NAME="C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\stm8\LIB\dlstm8smn.h"
+-D_DLIB_CONFIG_FILE_STRING="C:\\Program Files (x86)\\IAR Systems\\Embedded Workbench 8.0\\stm8\\LIB\\dlstm8smn.h"
 -D__VERSION__="IAR C/C++ Compiler V3.10.1.201 for STM8"
 -D__CODE_MEMORY_LIST1__()=__CODE_MEM_HELPER1__(__code, 0 )
 -D__CODE_MEMORY_LIST2__(_P1)=__CODE_MEM_HELPER2__(__code, 0 ,  _P1 )

@@ -57,24 +57,23 @@ void main(void)
   USART_Initialization();       //1182 B -> 85 B
   
   //------------------------Init I2C-----------------------------//
-  I2C_Initialization();       //605 B
+  I2C_Initialization();       //605 B -> 69 B
   
   //-----------------------Init GPIO-----------------------------//
-  GPIO_Initialization();        //263 B -> 57 B
+  GPIO_Init_Fast();        //263 B -> 57 B
   
   //-----------------------Init SPI------------------------------//
   SPI_Initialization();        //
    
   //----------------------Init Timers---------------------------//
   //Delay(10000);
-  //Timer1_Init();              //716 B
-  Timer2_Init();                //209 B
+  Timer2_Init();                //209 B -> 36 B
   enableInterrupts();           
   
   //----------------------Init Buzzer---------------------------//
   // Beep_Start();
   // Beep_Stop();
-  Beep_Initialization();      //130 B
+  Beep_Initialization();      //130 B -> 12 B
   
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
   OLED_Init();                  //169 B
@@ -115,12 +114,12 @@ void main(void)
    framecount++;
    if(framecount > 4){
      framecount = 0;
-     //OLED_dispVelocity(&OLED_buffer, BMP.press);
-     //OLED_dispAcceleration(&OLED_buffer, (uint32_t)BMP.diff_pressure);
+     OLED_dispVelocity(&OLED_buffer, BMP.press);
+     OLED_dispAcceleration(&OLED_buffer, (uint32_t)BMP.diff_pressure);
      //OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
-     //OLED_dispAltitude(&OLED_buffer, labs(BMP.max_altitude));
+     OLED_dispAltitude(&OLED_buffer, labs(BMP.max_altitude));
     
-     //OLED_RefreshRAM(&OLED_buffer);
+     OLED_RefreshRAM(&OLED_buffer);
    }
 
    Delay(1000);       //11 B
@@ -148,18 +147,6 @@ void Delay(uint32_t nCount)
 //                              GPIO
 //======================================================================================
 
-void GPIO_Initialization(void){
-  /*
-  GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_OUT_PP_HIGH_FAST);   //Si4463 CS   //13 B
-  GPIO_WriteHigh (GPIOD, GPIO_PIN_2);         //9 B
-  
-  GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST);   //13 B
-  
-  GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST);   //13 B
-  GPIO_WriteHigh (GPIOD, GPIO_PIN_4);           //9 B
-  */
-  GPIO_Init_Fast();   //57 B
-}
 
 void GPIO_Init_Fast(){
   //PC3 - LED1
@@ -466,9 +453,6 @@ void Beep_Initialization(void){
   BEEP->CSR = (10) | 0x40;
   
   //BEEP_Init(BEEP_FREQUENCY_2KHZ);       //BEEP_FREQUENCY_1KHZ, BEEP_FREQUENCY_2KHZ, BEEP_FREQUENCY_4KHZ
-  
-  /* Enable the BEEP peripheral */
-    BEEP->CSR |= BEEP_CSR_BEEPEN;
 }
 
 inline void Beep_Start(void){
