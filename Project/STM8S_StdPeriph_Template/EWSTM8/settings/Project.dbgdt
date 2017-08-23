@@ -501,7 +501,7 @@
                     <item>Sensors</item>
                     <item>beep_trigger</item>
                     <item>beep</item>
-                    <item></item>
+                    <item />
                 </expressions>
                 <col-names>
                     <item>Expression</item>

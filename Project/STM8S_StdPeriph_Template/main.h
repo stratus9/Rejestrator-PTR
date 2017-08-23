@@ -52,10 +52,12 @@ typedef struct bmp_s{
   //float p;
   
   int32_t press;
-  int32_t min_pressure;
-  int32_t max_pressure;
+  float press_f;
+  float min_pressure;
+  float max_pressure;
+  float diff_pressure;
   int32_t temp;
-  int32_t altitude;
+  float altitude;
   int32_t max_altitude;
   
   //float x1, x2, x3, x4;
@@ -143,8 +145,8 @@ void OLED_RefreshRAM(OLED_t * OLED);
 void OLED_Clear(OLED_t * OLED, uint8_t fill);
 void OLED_SetColStart(void);
 void OLED_DrawPoint(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t p);
-void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t size, uint8_t mode);
-void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t *txt, uint8_t size, uint8_t mode);
+void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr);
+void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t *txt);
 void OLED_setContrast(uint8_t value);
 void OLED_int2string(char * string, uint32_t number);
 void OLED_paramTemplate(OLED_t * OLED);
@@ -156,13 +158,14 @@ inline void OLED_dispAltitude(OLED_t * OLED, uint32_t value);
 void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y01, uint8_t x12, uint8_t y2, uint8_t mode);
 void OLED_drawPlotTemplate(OLED_t * OLED, char type);
 void OLED_drawPlotData(OLED_t * OLED, dataset_t * data);
+uint8_t OLED_charDecoder(char znak);
 void datasetPrepare(dataset_t * data);
 
 void dev_CheckSensors();
 
 void BMP_init(bmp_t * BMP);
 void BMP_read(bmp_t * BMP);
-float BMP_altitude(uint32_t startPress, uint32_t currPress);
+float BMP_altitude(float startPress, float currPress);
 
 void ADXL_init();
 void ADXL_read(sensors_t * sensor);

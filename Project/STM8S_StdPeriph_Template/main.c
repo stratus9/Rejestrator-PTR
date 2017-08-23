@@ -87,11 +87,11 @@ void main(void)
   OLED_RefreshRAM(&OLED_buffer);        //6 B
   
   
-  //FLASH_PowerUp();
+  FLASH_PowerUp();
   
   BMP_read(&BMP);       //430 B
-  BMP.max_pressure = BMP.press;
-  BMP.min_pressure = BMP.press;
+  BMP.max_pressure = BMP.press_f;
+  BMP.min_pressure = BMP.press_f;
   BMP.max_altitude = 0;
   
   uint8_t framecount = 0;
@@ -99,26 +99,28 @@ void main(void)
    ADXL_read(&Sensors); //87 B
    BMP_read(&BMP);       //430 B
    LED_BLUE(1);
-   if(BMP.max_pressure < BMP.press) BMP.max_pressure = BMP.press;
-   if(BMP.min_pressure > BMP.press) BMP.min_pressure = BMP.press;
+   if(BMP.max_pressure < BMP.press_f) BMP.max_pressure = BMP.press_f;
+   if(BMP.min_pressure > BMP.press_f) BMP.min_pressure = BMP.press_f;
    
-   BMP.altitude = (int32_t)BMP_altitude(BMP.min_pressure, BMP.max_pressure);
+   BMP.altitude = BMP_altitude(BMP.max_pressure, BMP.min_pressure);
    if(BMP.max_altitude < BMP.altitude) BMP.max_altitude = BMP.altitude;
    
-   if((BMP.max_altitude > 50) && (BMP.altitude < 20)) beep_trigger = 1;
-   else beep_trigger = 0;
+   BMP.diff_pressure = BMP.max_pressure - BMP.min_pressure;
+   
+   //if((BMP.max_altitude > 50) && (BMP.altitude < 20)) beep_trigger = 1;
+   //else beep_trigger = 0;
    
    if(Sensors.max_acc < Sensors.accY) Sensors.max_acc = Sensors.accY;
    
    framecount++;
    if(framecount > 4){
      framecount = 0;
-     OLED_dispVelocity(&OLED_buffer, 0);
-     OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
-     OLED_dispAltitude(&OLED_buffer, labs(BMP.max_altitude));
-     //OLED_dispAltitude(&OLED_buffer, abs(Sensors.accZ)*1000UL/256);
+     //OLED_dispVelocity(&OLED_buffer, BMP.press);
+     //OLED_dispAcceleration(&OLED_buffer, (uint32_t)BMP.diff_pressure);
+     //OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
+     //OLED_dispAltitude(&OLED_buffer, labs(BMP.max_altitude));
     
-     OLED_RefreshRAM(&OLED_buffer);
+     //OLED_RefreshRAM(&OLED_buffer);
    }
 
    Delay(1000);       //11 B
@@ -453,6 +455,7 @@ void Timer2_ISR(){
     if(beep == 4) Beep_Start();
     else Beep_Stop();
   }
+  else Beep_Stop();
 }
 
 //==========================================================================================================
@@ -855,7 +858,7 @@ void OLED_Clear(OLED_t * OLED, uint8_t fill){
   OLED_RefreshRAM(OLED);//zawartoœæ bufora do RAM obrazu
 } 
 
-void OLED_SetColStart(void){ 
+void OLED_SetColStart(){ 
     OLED_SendCommand(0x00); //low
     OLED_SendCommand(0x12); //high
 }
@@ -886,20 +889,15 @@ void OLED_DrawPoint(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t p){
 //size - rozmiar 12, lub 16
 //mode=1 znak wyœwietlany normalnie, mode=0 znak wyœwietlany w negatywie
 //*******************************************************************************
-void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t size, uint8_t mode){    
+void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr){    
   uint8_t i, j;
   uint8_t chTemp, chYpos0 = y;
   
-  Chr = Chr - ' ' + 1;          
-  for (i = 0; i < size; i ++) {  
-    if (size == 12) {
-      if (mode) {
-        chTemp = c_chFont1206[Chr][i];
-      } else {
-        chTemp = ~c_chFont1206[Chr][i];
-      }
-    } 
-    
+  //Chr = Chr - ' ' + 1;    
+  Chr = OLED_charDecoder(Chr);
+  for (i = 0; i < 12; i ++) {  
+        chTemp = c_chFont1206_lite[Chr][i];
+
     for (j = 0; j < 8; j ++) {
       if (chTemp & 0x80) {
         OLED_DrawPoint(OLED, x, y, 1);
@@ -909,13 +907,35 @@ void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t 
       chTemp <<= 1;
       y ++;
       
-      if ((y - chYpos0) == size) {
+      if ((y - chYpos0) == 12) {
         y = chYpos0;
         x ++;
         break;
       }
     }  
   }
+}
+
+uint8_t OLED_charDecoder(char znak){
+  if(znak == ' ') return 0;
+  if((znak >= '0') && (znak <= '9')) return znak-41;
+  if(znak == '!') return 1;
+  if(znak == '%') return 2;
+  if(znak == '+') return 3;
+  if(znak == '-') return 4;
+  if(znak == '.') return 5;
+  if(znak == '/') return 6;
+  if(znak == ':') return 17;
+  if(znak == 'A') return 18;
+  if(znak == 'H') return 19;
+  if(znak == 'P') return 20;
+  if(znak == 'V') return 21;
+  if(znak == '^') return 22;
+  if(znak == 'a') return 23;
+  if(znak == 'm') return 24;
+  if(znak == 'x') return 25;
+  if(znak == 's') return 26;
+  return 0;
 }
 
 //*********************************************************************************
@@ -926,19 +946,11 @@ void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr, uint8_t 
 //size - wysokoœæ znaków 12, lub 16 pikseli 
 //mode=1 znaki wyœwietlane normalnie, mode=0 znaki wyœwietlane w negatywie
 //*********************************************************************************
-void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y,  uint8_t *txt, uint8_t size, uint8_t mode){
+void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y,  uint8_t *txt){
   while (*txt != '\0') {    
-    if (x > (96 - size / 2)) {
-      x = 0;
-      y += size;
-      if (y > (32 - size)) {
-        y = x = 0;
-        //DisplayCls(0x00);
-      }
-    }
     
-    OLED_displayChar(OLED, x, y, *txt, size, mode);
-    x += size / 2;
+    OLED_displayChar(OLED, x, y, *txt);
+    x += 6;
     txt ++;
   }
 }
@@ -959,16 +971,16 @@ void OLED_int2string(char * string, uint32_t number){
 }
 
 void OLED_paramTemplate(OLED_t * OLED){
-  OLED_dispTxt(OLED, 0, 0,"Vmax:       m/s",12,1);
-  OLED_dispTxt(OLED, 0,10,"Amax:       m/s^",12,1);
-  OLED_dispTxt(OLED, 0,21,"Hmax:       m",12,1);
+  OLED_dispTxt(OLED, 0, 0,"Vmax:       m/s");
+  OLED_dispTxt(OLED, 0,10,"Amax:       m/s^");
+  OLED_dispTxt(OLED, 0,21,"Hmax:       m");
 }
 
 void OLED_dispInt(OLED_t * OLED, uint8_t x, uint8_t y, int32_t value){
   char bufor[7];
   OLED_int2string(bufor, value);
   
-  OLED_dispTxt(OLED,x,y,bufor,12,1);
+  OLED_dispTxt(OLED,x,y,bufor);
 }
 
 inline void OLED_dispVelocity(OLED_t * OLED, uint32_t value){
@@ -1034,13 +1046,13 @@ void OLED_drawPlotTemplate(OLED_t * OLED, char type){
   OLED_drawLine(OLED,  0, 29, 90, 29, 1);
   OLED_drawLine(OLED, 90, 29, 88, 27, 1);
   OLED_drawLine(OLED, 90, 29, 88, 31, 1);
-  OLED_displayChar(OLED, 91, 20, 't', 12, 1);
+  OLED_displayChar(OLED, 91, 20, 't');
     
   //---- Y axis  ----------
   OLED_drawLine(OLED, 2, 6, 2, 31, 1);
   OLED_drawLine(OLED, 2, 6, 0,  8, 1);
   OLED_drawLine(OLED, 2, 6, 4,  8, 1);
-  OLED_displayChar(OLED, 4, 0, type, 12, 1);
+  OLED_displayChar(OLED, 4, 0, type);
 }
 */
 
@@ -1055,18 +1067,19 @@ void datasetPrepare(dataset_t * data){
 //==========================================================================================================
 //                              Dev
 //==========================================================================================================
+/*
 void dev_CheckSensors(){
   OLED_Clear(&OLED_buffer, 0);
   
-  if(I2C_ReadOneByte(0xEE, 0xD0) == 0x58) OLED_dispTxt(&OLED_buffer,0,0,"BMP  OK",12,1);
-  else OLED_dispTxt(&OLED_buffer,0,0,"BMP  NOPE",12,1);
+  if(I2C_ReadOneByte(0xEE, 0xD0) == 0x58) OLED_dispTxt(&OLED_buffer,0,0,"BMP  OK");
+  else OLED_dispTxt(&OLED_buffer,0,0,"BMP  NOPE");
   
-  if(I2C_ReadOneByte(0x3A, 0x00) == 0xE5) OLED_dispTxt(&OLED_buffer,0,12,"ADXL OK",12,1);
-  else OLED_dispTxt(&OLED_buffer,0,12,"ADXL  NOPE",12,1);
+  if(I2C_ReadOneByte(0x3A, 0x00) == 0xE5) OLED_dispTxt(&OLED_buffer,0,12,"ADXL OK");
+  else OLED_dispTxt(&OLED_buffer,0,12,"ADXL  NOPE");
   
   OLED_RefreshRAM(&OLED_buffer);
 }
-
+*/
 //==========================================================================================================
 //                              BMP280
 //==========================================================================================================
@@ -1140,17 +1153,17 @@ void BMP_read(bmp_t * BMP) {
   fvar2 = p*((float)BMP->P8)/32768.0;
   p = p + (fvar1 + fvar2+((float)BMP->P7))/16.0;
   BMP->press = (uint32_t)p;
+  BMP->press_f = p;
 }
 
-float BMP_altitude(uint32_t startPress, uint32_t currPress){
+float BMP_altitude(float startPress, float currPress){
    float x1, x2, x3, x4;
-   //x1 = (1.0-powf(currPress/startPress, 0.1902632365))*43538.0;
-   //x1 = 297.15/9.8*297.15*logf(startPress/currPress);
+   //return (1.0-powf(currPress/startPress, 0.1902632365))*43538.0;
    x1 = (float)currPress/(float)startPress;
    x2 = -4863.0*x1*x1*x1;
    x3 =  16830.0*x1*x1;
    x4 = -27490.0*x1;
-   return (x2 + x3 + x4 + 15520)*100.0;
+   return (x2 + x3 + x4 + 15520.0)*100.0;
 }
 
 //==========================================================================================================
