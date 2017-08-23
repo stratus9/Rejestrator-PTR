@@ -1,30 +1,30 @@
-"D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Libraries\STM8S_StdPeriph_Driver\src\stm8s_wwdg.c"
+"C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Libraries\STM8S_StdPeriph_Driver\src\stm8s_wwdg.c"
 -std=c99
 -ferror-limit=0
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Libraries\STM8S_StdPeriph_Driver\inc
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Libraries\STM8S_StdPeriph_Driver\inc
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Utilities\STM8S_EVAL
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Utilities\STM8S_EVAL
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Utilities\STM8S_EVAL\STM8S-128_EVAL
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Utilities\STM8S_EVAL\STM8S-128_EVAL
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Utilities\STM8S_EVAL\Common
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\..\..\..\Utilities\STM8S_EVAL\Common
 -I
 C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\stm8\inc
 -I
 C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\stm8\inc\c
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Libraries\STM8S_StdPeriph_Driver\inc
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Libraries\STM8S_StdPeriph_Driver\inc
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Utilities\STM8S_EVAL
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Utilities\STM8S_EVAL
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\STM8S-128_EVAL
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\STM8S-128_EVAL
 -I
-D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\Common
+C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Utilities\STM8S_EVAL\Common
 -D__CHAR_BITS__=8
 -D__CHAR_MAX__=0xff
 -D__CHAR_MIN__=0

@@ -25,7 +25,7 @@ if not "%~1" == "" goto debugFile
 
 @echo on 
 
-"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" --backend -f "D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
+"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" --backend -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
 
 @echo off 
 goto end 
@@ -34,7 +34,7 @@ goto end
 
 @echo on 
 
-"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" "--debug_file=%~1" --backend -f "D:\Konto bartek\Dokumenty\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
+"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" "--debug_file=%~1" --backend -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
 
 @echo off 
 :end

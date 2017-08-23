@@ -30,7 +30,7 @@
 #include "stm8s.h"
 #include "main.h"
 #include "fonts.h"
-//#include <math.h>
+#include <math.h>
 #include <stdlib.h>
 //#include <stdint.h>
 
@@ -42,7 +42,8 @@ sensors_t Sensors;
 bmp_t BMP;
 volatile uint8_t beep = 0;
 volatile uint8_t beep_trigger = 0;
-//FLASH_pageStruct_t FLASH_pageStruct_d;
+FLASH_pageStruct_t FLASH_pageStruct_d;
+state_t state_d;
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -75,11 +76,13 @@ void main(void)
   // Beep_Stop();
   Beep_Initialization();      //130 B -> 12 B
   
+  ISR_init();
+  
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
   OLED_Init();                  //169 B
   ADXL_init();                  //37 B
   BMP_init(&BMP);               //241 B
-  LED_GREEN(0);
+  LED_GREEN(1);
   
   OLED_Clear(&OLED_buffer, 0);  //64B 
   OLED_paramTemplate(&OLED_buffer);
@@ -95,9 +98,13 @@ void main(void)
   
   uint8_t framecount = 0;
   while (1){
+    StateMachine();
+    
+    
+    
    ADXL_read(&Sensors); //87 B
    BMP_read(&BMP);       //430 B
-   LED_BLUE(1);
+   //LED_BLUE(1);
    if(BMP.max_pressure < BMP.press_f) BMP.max_pressure = BMP.press_f;
    if(BMP.min_pressure > BMP.press_f) BMP.min_pressure = BMP.press_f;
    
@@ -115,18 +122,78 @@ void main(void)
    if(framecount > 4){
      framecount = 0;
      OLED_dispVelocity(&OLED_buffer, BMP.press);
-     OLED_dispAcceleration(&OLED_buffer, (uint32_t)BMP.diff_pressure);
+     OLED_dispAcceleration(&OLED_buffer, (uint32_t)state_d.devState*100);
      //OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
-     OLED_dispAltitude(&OLED_buffer, labs(BMP.max_altitude));
+     OLED_dispAltitude(&OLED_buffer, (uint32_t)state_d.button*100);
     
      OLED_RefreshRAM(&OLED_buffer);
    }
 
    Delay(1000);       //11 B
-   LED_BLUE(0);
+   //LED_BLUE(0);
+   //LED_GREEN(0);
    Delay(2000);    //3 B
   }
 }
+
+//======================================================================================
+//                              State machine
+//======================================================================================
+void StateMachine(){
+  switch(state_d.devState) {
+        //--------case 0 sleep-------------------------------------------
+        case 0: 
+        //wylacz buzzer i ledy
+        //uspij
+          if(state_d.button > 20){
+            state_d.devState = 1;
+            while(!(GPIOD->IDR & 0x02)) {}
+            state_d.button = 0;
+          }
+        break;
+                    
+        //-------case 1 wait for start-----------------------------------------
+        case 1: 
+        //miganie zielonej diodki jako gotowosc
+        if(abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) > 450) state_d.devState = 2;
+        if(0){
+          state_d.devState = 0;
+          while(!(GPIOD->IDR & 0x02)) {}
+        }
+        break;
+                
+        //-------case 2 wait for landing-----------------------------------------
+        case 2:
+        //lecimy czyli zapis parametrów do FLASH
+        if((abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) < 450) && (fabs(BMP.velocity) <= 1)) state_d.devState = 3;
+        break;
+        
+        //-------case 3 wait for pickup-----------------------------------------
+        case 3:
+        //wylacz zapis flash
+        //wlacz buzzer
+        //wylacz ledy i ekran
+        if(state_d.button > 5) {
+            state_d.devState = 4;
+            while(!(GPIOD->IDR & 0x02)) {}
+            state_d.button = 0;
+        }
+        break;
+  
+        //-------case 4 displ values-----------------------------------------
+        case 4:
+        //wypisz wynik
+        //wylacz buzzer
+        if(state_d.button > 20) {
+            state_d.devState = 0;
+            while(!(GPIOD->IDR & 0x02)) {}
+            state_d.button = 0;
+        }
+        break;
+    }
+}
+
+
 
 /**
   * @brief  Delay.
@@ -140,6 +207,36 @@ void Delay(uint32_t nCount)
     {
         nCount--;
     }
+}
+
+//======================================================================================
+//                              Button ISR
+//======================================================================================
+void ButtonISR(){
+  LED_GREEN(1);
+  Delay(200000);    //3 B
+  LED_GREEN(0);
+  Delay(200000);    //3 B
+}
+
+void Timer2_ISR(){    
+  if(beep_trigger){
+    beep++;
+    if(beep > 20) beep = 0;
+    if(beep == 4) Beep_Start();
+    else Beep_Stop();
+  }
+  else Beep_Stop();
+  
+  if(!(GPIOD->IDR & 0x02) && (state_d.button < 255)) state_d.button++;
+  else state_d.button = 0;
+  GPIOA->ODR ^= 0x02;
+}
+
+void ISR_init(){
+  EXTI_DeInit();
+  EXTI->CR1 = 0x80;
+  EXTI->CR2 = 0x00;
 }
 
 
@@ -173,6 +270,12 @@ void GPIO_Init_Fast(){
   GPIOD->DDR |= 0x04;   //Output
   GPIOD->CR1 |= 0x04;   //Push-Pull
   GPIOD->ODR |= 0x04;   //Enable I2C Pull-up
+  
+  //PD1 - switch
+  GPIOD->DDR &= 0x02;  //Intput
+  GPIOD->CR1 |= 0x02;   //pull-up
+  GPIOD->CR2 &= 0x02;  //slow slope 2MHz
+  
 }
 
 //=======================================================================================
@@ -433,16 +536,6 @@ void Timer2_Init(){
 
   /* TIM1 counter enable */
   TIM2->CR1 |= (uint8_t)TIM2_CR1_CEN;
-}
-
-void Timer2_ISR(){    
-  if(beep_trigger){
-    beep++;
-    if(beep > 20) beep = 0;
-    if(beep == 4) Beep_Start();
-    else Beep_Stop();
-  }
-  else Beep_Stop();
 }
 
 //==========================================================================================================
@@ -1040,13 +1133,6 @@ void OLED_drawPlotTemplate(OLED_t * OLED, char type){
 }
 */
 
-void OLED_drawPlotData(OLED_t * OLED, dataset_t * data){
-  
-}
-
-void datasetPrepare(dataset_t * data){
-  
-}
 
 //==========================================================================================================
 //                              Dev

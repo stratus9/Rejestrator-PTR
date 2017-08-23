@@ -7,11 +7,6 @@ typedef struct OLED_s{
   uint8_t OLED_dispBuff[96][4];
 } OLED_t;
 
-typedef struct dataset_s{
-  uint8_t data[100];
-  
-} dataset_t;
-
 typedef struct sensors_s{
   int16_t accX;
   int16_t accY;
@@ -59,6 +54,7 @@ typedef struct bmp_s{
   int32_t temp;
   float altitude;
   int32_t max_altitude;
+  float velocity;
   
   //float x1, x2, x3, x4;
 } bmp_t;
@@ -88,8 +84,15 @@ typedef struct{
 		};
 }FLASH_pageStruct_t;
 
+typedef struct {
+  uint8_t devState;
+  uint8_t flightState;
+  uint8_t button;
+} state_t;
+
 
 /* Private function prototypes -----------------------------------------------*/
+void StateMachine();
 void Delay(uint32_t);
 float Q_rsqrt( float number );
 
@@ -157,9 +160,9 @@ inline void OLED_dispAltitude(OLED_t * OLED, uint32_t value);
 
 void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y01, uint8_t x12, uint8_t y2, uint8_t mode);
 void OLED_drawPlotTemplate(OLED_t * OLED, char type);
-void OLED_drawPlotData(OLED_t * OLED, dataset_t * data);
+//void OLED_drawPlotData(OLED_t * OLED, dataset_t * data);
 uint8_t OLED_charDecoder(char znak);
-void datasetPrepare(dataset_t * data);
+//void datasetPrepare(dataset_t * data);
 
 void dev_CheckSensors();
 
@@ -169,5 +172,8 @@ float BMP_altitude(float startPress, float currPress);
 
 void ADXL_init();
 void ADXL_read(sensors_t * sensor);
+
+void ButtonISR();
+void ISR_init();
 
 #endif /* __MAIN_H */
