@@ -9,10 +9,15 @@
 //                              ADXL345
 //==========================================================================================================
 void ADXL_init(){
-  I2C_SendTwoBytes(0x3A, 0x2D, 0x00);
-  I2C_SendTwoBytes(0x3A, 0x2D, 0x10);
-  I2C_SendTwoBytes(0x3A, 0x2D, 0x08);
-  I2C_SendTwoBytes(0x3A, 0x31, 0x0B);   // +/- 16g Full ress
+  uint8_t data[2];
+  data[0] = 0x2D; data[1] = 0x00;
+  I2C_SendNByte(0x3A, data, 2);
+  data[0] = 0x2D; data[1] = 0x10;
+  I2C_SendNByte(0x3A, data, 2);
+  data[0] = 0x2D; data[1] = 0x08;
+  I2C_SendNByte(0x3A, data, 2);
+  data[0] = 0x31; data[1] = 0x0B;
+  I2C_SendNByte(0x3A, data, 2);   // +/- 16g Full ress
 }
 
 void ADXL_read(sensors_t * sensor){

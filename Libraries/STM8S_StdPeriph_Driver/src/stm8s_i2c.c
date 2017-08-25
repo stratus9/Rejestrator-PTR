@@ -585,11 +585,11 @@ ErrorStatus I2C_CheckEvent(I2C_Event_TypeDef I2C_Event)
   /* Check the parameters */
   assert_param(IS_I2C_EVENT_OK(I2C_Event));
 
-  if (I2C_Event == I2C_EVENT_SLAVE_ACK_FAILURE)
-  {
-    lastevent = I2C->SR2 & I2C_SR2_AF;
-  }
-  else
+//  if (I2C_Event == I2C_EVENT_SLAVE_ACK_FAILURE)
+//  {
+//    lastevent = I2C->SR2 & I2C_SR2_AF;
+//  }
+//  else
   {
     flag1 = I2C->SR1;
     flag2 = I2C->SR3;

@@ -55,10 +55,15 @@ void Timer1_Init(){
   TIM1_CtrlPWMOutputs(ENABLE);
 }
 
+
 void Timer2_Init(){
   //TIM2_DeInit();
-  TIM2_TimeBaseInit(TIM2_PRESCALER_16384, 97);    //10 = X/(1024*6630) Fclk = 15.912.000 ~fcpu
+  //TIM2_TimeBaseInit(TIM2_PRESCALER_16384, 97);    //10 = X/(1024*6630) Fclk = 15.912.000 ~fcpu
   //TIM2_TimeBaseInit(TIM2_PRESCALER_16, 9945);    //~100Hz
+  
+  TIM2->PSCR = 0x0E;
+  TIM2->ARRH = 0x00;
+  TIM2->ARRL = 0x61;
   
   //TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
   TIM2->IER |= TIM2_IT_UPDATE;
@@ -78,6 +83,9 @@ void Timer2_ISR(){
     else Beep_Stop();
   }
   else Beep_Stop();
+  
+  //if((!(GPIOD->IDR & 0x02))) LED_BLUE(1);
+  //else LED_BLUE(0);
 }
 
 //==========================================================================================================

@@ -14,7 +14,7 @@ void USART_Initialization(void){
   
   //UART1_Init((uint32_t)115200, UART1_WORDLENGTH_8D, UART1_STOPBITS_1, UART1_PARITY_NO, UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TXRX_ENABLE); //1163 B
   UART1_Init_Fast();    //29 B
-  UART1_ENABLE();       //19 B -> 9 B
+  UART1->CR1 &= (~0x20); 
 }
 
 void UART1_Init_Fast(){
@@ -51,19 +51,14 @@ void UART1_DeInit_Fast(){
   UART1->PSCR = 0x00;   //4B
 }
 
-inline void UART1_ENABLE(){
-    /* UART1 Enable */
-    UART1->CR1 &= (~0x20); 
-}
-
 void USART_SendString(char * value){
   while(*value){
-    while (UART1_GetFlagStatus(UART1_FLAG_TXE) == RESET){}
+    while (!(UART1->SR  & 0x80)){}
     UART1_SendData8(*value++);
   }
 }
 
 void USART_SendChar(char value){
-  while (UART1_GetFlagStatus(UART1_FLAG_TXE) == RESET){}
+  while (!(UART1->SR  & 0x80)){}
   UART1_SendData8(value);
 }

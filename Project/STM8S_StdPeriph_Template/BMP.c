@@ -39,7 +39,9 @@ void BMP_init(bmp_t * BMP) {
   BMP->P9 = 6000;       //buffer[22] | (buffer[23] << 8);
   */
   
-  I2C_SendTwoBytes(0xEE, 0xF4, 0x3F);
+  uint8_t data[2];
+  data[0] = 0xF4; data[1] = 0x3F;
+  I2C_SendNByte(0xEE, data, 2);
 }
 
 void BMP_read(bmp_t * BMP) {
@@ -77,15 +79,16 @@ void BMP_read(bmp_t * BMP) {
   fvar1 = ((float)BMP->P9)*p*p/2147483648.0;
   fvar2 = p*((float)BMP->P8)/32768.0;
   p = p + (fvar1 + fvar2+((float)BMP->P7))/16.0;
-  BMP->press_f = p*0.2 + BMP->press_f*0.8;
+  p *= 100.0;
+  BMP->press = (int32_t)(p*0.95 + BMP->press*0.05);
 }
 
-float BMP_altitude(float startPress, float currPress){
+int32_t BMP_altitude(int32_t startPress, int32_t currPress){
    float x1, x2, x3, x4;
    //return (1.0-powf(currPress/startPress, 0.1902632365))*43538.0;
    x1 = (float)currPress/(float)startPress;
    x2 = -4863.0*x1*x1*x1;
    x3 =  16830.0*x1*x1;
    x4 = -27490.0*x1;
-   return (x2 + x3 + x4 + 15520.0)*100.0;
+   return (int32_t)((x2 + x3 + x4 + 15520.0)*100.0);
 }

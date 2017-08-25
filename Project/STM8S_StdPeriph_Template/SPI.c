@@ -8,7 +8,7 @@
 //                              SPI
 //==========================================================================================================
 void SPI_Initialization(){
-  SPI_DeInit();       //25 B
+  //SPI_DeInit();       //25 B
   SPI->CR1 = 0x28 | 0x04;      //MSB first, x64 prescaler, polarity Low, Master
   SPI->CR2 = 0x02 | 0x01;      //Full duplex, Software slave management enabled, Master
   /* SPI Enable */

@@ -291,7 +291,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
     Timer2_ISR();
    //GPIO_WriteReverse(GPIOC, GPIO_PIN_3);
     //USART_SendString("ISR_Tim!\r\n");
-    TIM2_ClearITPendingBit(TIM2_IT_UPDATE); 
+    TIM2->SR1 = (uint8_t)(~0x01);
  }
 
 /**
