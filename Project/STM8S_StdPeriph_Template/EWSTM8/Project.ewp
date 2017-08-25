@@ -884,13 +884,37 @@
     <group>
         <name>User</name>
         <file>
+            <name>$PROJ_DIR$\..\ADXL.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\BMP.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\FLASH.c</name>
+        </file>
+        <file>
             <name>$PROJ_DIR$\..\fonts.h</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\I2C.c</name>
         </file>
         <file>
             <name>$PROJ_DIR$\..\main.c</name>
         </file>
         <file>
+            <name>$PROJ_DIR$\..\OLED.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\SPI.c</name>
+        </file>
+        <file>
             <name>$PROJ_DIR$\..\stm8s_it.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Timers.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\UART.c</name>
         </file>
     </group>
 </project>

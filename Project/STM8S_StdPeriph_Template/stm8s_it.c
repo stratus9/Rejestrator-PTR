@@ -30,6 +30,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm8s_it.h"
 #include "main.h"
+#include "Timers.h"
 
 /** @addtogroup Template_Project
   * @{

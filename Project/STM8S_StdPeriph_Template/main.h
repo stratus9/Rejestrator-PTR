@@ -53,7 +53,9 @@ typedef struct bmp_s{
   float diff_pressure;
   int32_t temp;
   float altitude;
-  int32_t max_altitude;
+  float start_altitude;
+  float real_altitude;
+  float max_altitude;
   float velocity;
   
   //float x1, x2, x3, x4;
@@ -84,6 +86,9 @@ typedef struct{
 		};
 }FLASH_pageStruct_t;
 
+extern volatile uint8_t beep;
+extern volatile uint8_t beep_trigger;
+
 typedef struct {
   uint8_t devState;
   uint8_t flightState;
@@ -93,85 +98,17 @@ typedef struct {
 
 /* Private function prototypes -----------------------------------------------*/
 void StateMachine();
-void Delay(uint32_t);
-float Q_rsqrt( float number );
 
-void USART_Initialization(void);
-void UART1_Init_Fast();
-void UART1_DeInit_Fast();
-void UART1_ENABLE();
-void USART_SendString(char *);
-void USART_SendChar(char);
 
+/* Private function prototypes -----------------------------------------------*/
 void GPIO_Initialization(void);
 void GPIO_Init_Fast();
-
-void SPI_Initialization();
-inline void SPI_wait();
-void SPI_sendByte(uint8_t value);
-uint8_t SPI_ReadByte();
-uint8_t SPI_RWByte(uint8_t value);
-void SPI_ClearRXBuffer();
-void FLASH_CS(uint8_t value);
-uint16_t FLASH_ReadID();
-void FLASH_PowerUp();
-void FLASH_1byteCommand(uint8_t value);
-void FLASH_WriteEnable(uint8_t value);
-void FLASH_arrayRead(uint32_t address, uint8_t * array, uint32_t length);
-void FLASH_waitForReady();
-uint8_t FLASH_status();
-void FLASH_pageWrite(uint32_t page, uint8_t * array, uint16_t length);
-
-void Timer1_Init();
-void Timer2_Init();
-void Timer2_ISR();
-
-void Beep_Initialization();
-inline void Beep_Start();
-inline void Beep_Stop();
 
 void LED_BLUE(uint8_t value);
 void LED_GREEN(uint8_t value);
 
-void I2C_Initialization();
-void I2C_InitFast();
-void I2C_SendOneByte(uint8_t address, uint8_t data);
-void I2C_SendTwoBytes(uint8_t address, uint8_t data1, uint8_t data2);
-uint8_t I2C_ReadOneByte(uint8_t address, uint8_t reg);
-uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t length);
-
-void OLED_Init();
-void OLED_Reset();
-void OLED_SendCommand(uint8_t data);
-void OLED_SendData(uint8_t data);
-void OLED_RefreshRAM(OLED_t * OLED);
-void OLED_Clear(OLED_t * OLED, uint8_t fill);
-void OLED_SetColStart(void);
-void OLED_DrawPoint(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t p);
-void OLED_displayChar(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t Chr);
-void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y, uint8_t *txt);
-void OLED_setContrast(uint8_t value);
-void OLED_int2string(char * string, uint32_t number);
-void OLED_paramTemplate(OLED_t * OLED);
-void OLED_dispInt(OLED_t * OLED, uint8_t x, uint8_t y, int32_t value);
-inline void OLED_dispVelocity(OLED_t * OLED, uint32_t value);
-inline void OLED_dispAcceleration(OLED_t * OLED, uint32_t value);
-inline void OLED_dispAltitude(OLED_t * OLED, uint32_t value);
-
-void OLED_drawLine(OLED_t * OLED, uint8_t x1, uint8_t y01, uint8_t x12, uint8_t y2, uint8_t mode);
-void OLED_drawPlotTemplate(OLED_t * OLED, char type);
-//void OLED_drawPlotData(OLED_t * OLED, dataset_t * data);
-uint8_t OLED_charDecoder(char znak);
-//void datasetPrepare(dataset_t * data);
-
 void dev_CheckSensors();
 
-void BMP_init(bmp_t * BMP);
-void BMP_read(bmp_t * BMP);
-float BMP_altitude(float startPress, float currPress);
-
-void ADXL_init();
-void ADXL_read(sensors_t * sensor);
 
 void ButtonISR();
 void ISR_init();
