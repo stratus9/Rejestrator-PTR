@@ -32,10 +32,9 @@
 #include "BMP.h"
 #include "ADXL.h"
 #include "SPI.h"
-#include <math.h>
+//#include <math.h>
 #include <stdlib.h>
 #include "UART.h"
-#include "FLASH.h"
 #include "I2C.h"
 #include "Timers.h"
 #include "OLED.h"
@@ -49,14 +48,12 @@ sensors_t Sensors;
 bmp_t BMP;
 volatile uint8_t beep = 0;
 volatile uint8_t beep_trigger = 0;
-FLASH_pageStruct_t FLASH_pageStruct_d;
 state_t state_d;
 
 /* Private functions ---------------------------------------------------------*/
 
 
-void main(void)
-{
+void main(void){
   //while(1){}
   //----------------Select fCPU = 16MHz--------------------------//
   CLK->CKDIVR = 0x00;    //CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
@@ -75,12 +72,9 @@ void main(void)
    
   //----------------------Init Timers---------------------------//
   //Delay(10000);
-  Timer2_Init();                //209 B -> 36 B
-  enableInterrupts();           
+  Timer2_Init();                //209 B -> 36 B           
   
   //----------------------Init Buzzer---------------------------//
-  // Beep_Start();
-  // Beep_Stop();
   Beep_Initialization();      //130 B -> 12 B
   
   ISR_init();
@@ -89,11 +83,10 @@ void main(void)
   OLED_Init();                  //169 B
   ADXL_init();                  //37 B
   BMP_init(&BMP);               //241 B
-  FLASH_PowerUp();
   
   OLED_Clear(&OLED_buffer, 0);  //64B 
   OLED_paramTemplate(&OLED_buffer);
-  //OLED_RefreshRAM(&OLED_buffer);        //6 B
+  OLED_RefreshRAM(&OLED_buffer);        //6 B
   
   
   BMP_read(&BMP);       //430 B
@@ -103,18 +96,17 @@ void main(void)
   BMP.start_altitude = 0;
   
   uint8_t framecount = 0;
+  uint8_t buffer[8];
   while (1){
-   LED_BLUE(1); 
    StateMachine();
     
    ADXL_read(&Sensors); //87 B
    BMP_read(&BMP);       //430 B
    
+   if(BMP.max_pressure < BMP.press) BMP.max_pressure = BMP.press;
+   if(BMP.min_pressure > BMP.press) BMP.min_pressure = BMP.press;
    
-   if(BMP.max_pressure < BMP.press_f) BMP.max_pressure = BMP.press_f;
-   if(BMP.min_pressure > BMP.press_f) BMP.min_pressure = BMP.press_f;
-   
-   BMP.altitude = BMP_altitude(BMP.max_pressure, BMP.press_f);
+   BMP.altitude = BMP_altitude(BMP.max_pressure, BMP.press);
    if(BMP.max_altitude < BMP.altitude) BMP.max_altitude = BMP.altitude;
    if(BMP.altitude < BMP.start_altitude) BMP.start_altitude = BMP.altitude;
    
@@ -123,17 +115,18 @@ void main(void)
    framecount++;
    if(framecount > 2){
      framecount = 0;
-     OLED_dispVelocity(&OLED_buffer, (uint32_t)BMP.press_f);
+     OLED_dispVelocity(&OLED_buffer, (uint32_t)BMP.press/100);
      //OLED_dispAcceleration(&OLED_buffer, (uint32_t)BMP.diff_pressure);
      //OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
-     OLED_dispAltitude(&OLED_buffer, labs((int32_t)(BMP.altitude - BMP.start_altitude)));
+     OLED_dispAltitude(&OLED_buffer, labs(BMP.altitude - BMP.start_altitude)/100);
     
      OLED_RefreshRAM(&OLED_buffer);
    }
 
-   Delay(500);       //11 B
-   LED_BLUE(0);
+   Delay(1000);       //11 B
+   LED_GREEN(1);
    Delay(1000);    //3 B
+   LED_GREEN(0); 
   }
 }
 
@@ -156,6 +149,7 @@ void StateMachine(){
         //-------case 1 wait for start-----------------------------------------
         case 1: 
         //miganie zielonej diodki jako gotowosc
+          LED_GREEN(1);
         if(abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) > 450) state_d.devState = 2;
         if(0){
           state_d.devState = 0;
@@ -166,7 +160,7 @@ void StateMachine(){
         //-------case 2 wait for landing-----------------------------------------
         case 2:
         //lecimy czyli zapis parametrów do FLASH
-        if((abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) < 450) && (fabs(BMP.velocity) <= 1)) state_d.devState = 3;
+        if((abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) < 450) && (labs(BMP.velocity) <= 1)) state_d.devState = 3;
         break;
         
         //-------case 3 wait for pickup-----------------------------------------
@@ -206,8 +200,9 @@ void ButtonISR(){
 
 void ISR_init(){
   EXTI_DeInit();
-  EXTI->CR1 = 0x80;
-  EXTI->CR2 = 0x00;
+  //EXTI->CR1 = 0x80;
+  //EXTI->CR2 = 0x00;
+  enableInterrupts();
 }
 
 //======================================================================================

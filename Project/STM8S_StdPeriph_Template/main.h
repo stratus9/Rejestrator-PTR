@@ -47,25 +47,25 @@ typedef struct bmp_s{
   //float p;
   
   int32_t press;
-  float press_f;
-  float min_pressure;
-  float max_pressure;
-  float diff_pressure;
+  int32_t press_f;
+  int32_t min_pressure;
+  int32_t max_pressure;
+  int32_t diff_pressure;
   int32_t temp;
-  float altitude;
-  float start_altitude;
-  float real_altitude;
-  float max_altitude;
-  float velocity;
+  int32_t altitude;
+  int32_t start_altitude;
+  int32_t real_altitude;
+  int32_t max_altitude;
+  int32_t velocity;
   
   //float x1, x2, x3, x4;
 } bmp_t;
 
+/*
 typedef union {
 	uint8_t array[32];
 	struct{
-		float pressure;
-                float pressure_diff;
+		int32_t pressure;
                 uint8_t state;
                 int32_t altitude;
                 int32_t temperature;
@@ -76,7 +76,8 @@ typedef union {
                 int16_t velocity;
 		};
 } FLASH_dataStruct_t;
-
+*/
+/*
 typedef struct{
 	uint16_t pageNo;
 	uint8_t position;
@@ -85,9 +86,7 @@ typedef struct{
 		uint8_t data[256];
 		};
 }FLASH_pageStruct_t;
-
-extern volatile uint8_t beep;
-extern volatile uint8_t beep_trigger;
+*/
 
 typedef struct {
   uint8_t devState;
@@ -95,6 +94,9 @@ typedef struct {
   uint8_t button;
 } state_t;
 
+extern volatile uint8_t beep;
+extern volatile uint8_t beep_trigger;
+extern state_t state_d;
 
 /* Private function prototypes -----------------------------------------------*/
 void StateMachine();

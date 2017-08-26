@@ -22,7 +22,7 @@ void OLED_Init(){
   OLED_SendCommand(0x02);
   
   OLED_SendCommand(0x81);//ustaw kontrast
-  OLED_SendCommand(0xCF);
+  OLED_SendCommand(1);
   
   OLED_SendCommand(0xA0);//ustaw remapowanie    //by³o A1
   OLED_SendCommand(0xC8);//kierunek skanowania //by³o C0
@@ -46,7 +46,6 @@ void OLED_Init(){
   OLED_SendCommand(0xA4);//"pod³¹czenie" zawartoœci RAM do panelu OLED
   OLED_SendCommand(0xA6);//wy³¹czenie inwersji wyœwietlania
   OLED_SendCommand(0xAF);//w³¹cza wyœwietlacz
-  OLED_setContrast(1);
 }
 
 void OLED_Reset(){
@@ -56,50 +55,16 @@ void OLED_Reset(){
   Delay(100000);
 }
 
-void OLED_SendCommand(uint8_t data){
-  while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
-  
-  I2C->CR2 |= I2C_CR2_START;
-  while(!(I2C->SR1 & I2C_SR1_SB)){}
-  
-  I2C->SR1; // Read SR1 to clear SB bit
-  I2C->DR = 0x3C<<1;                            // Transmit address+W
-  while(!(I2C->SR1 & I2C_SR1_TXE));
-  while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
-  
-  I2C->SR3;
-  I2C->DR = 0x00;
-  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
-  
-  I2C->SR3;
-  I2C->DR = data;
-  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
-  
-  I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
-  while(!(I2C->CR2 & I2C_CR2_STOP)){}
+void OLED_SendCommand(uint8_t val){
+  uint8_t data[2];
+  data[0] = 0x00; data[1] = val; 
+  I2C_SendNByte(0x3C<<1, data, 2);
 }
 
-void OLED_SendData(uint8_t data){
-  while(I2C->SR3 & I2C_SR3_BUSY); //wait for not busy
-  
-  I2C->CR2 |= I2C_CR2_START;
-  while(!(I2C->SR1 & I2C_SR1_SB)){}
-  
-  I2C->SR1; // Read SR1 to clear SB bit
-  I2C->DR = 0x3C<<1;                            // Transmit address+W
-  while(!(I2C->SR1 & I2C_SR1_TXE));
-  while(!(I2C->SR1 & I2C_SR1_ADDR)){}           // Wait until address transmission is finished
-  
-  I2C->SR3;
-  I2C->DR = 0x40;
-  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
-  
-  I2C->SR3;
-  I2C->DR = data;
-  while(!(I2C->SR1 & I2C_SR1_TXE)){}           // Wait until address transmission is finished
-  
-  I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
-  while(!(I2C->CR2 & I2C_CR2_STOP)){}
+void OLED_SendData(uint8_t val){
+  uint8_t data[2];
+  data[0] = 0x40; data[1] = val; 
+  I2C_SendNByte(0x3C<<1, data, 2);
 }
 
 void OLED_RefreshRAM(OLED_t * OLED){
@@ -116,7 +81,7 @@ void OLED_RefreshRAM(OLED_t * OLED){
 
 void OLED_Clear(OLED_t * OLED, uint8_t fill){ 
   uint8_t i, j;
-  
+
   for (i = 0; i < 4; i ++) {
     for (j = 0; j < 96; j ++) {
       OLED->OLED_dispBuff[j][i] = fill;
@@ -223,11 +188,6 @@ void OLED_dispTxt(OLED_t * OLED, uint8_t x, uint8_t y,  uint8_t *txt){
   }
 }
 
-void OLED_setContrast(uint8_t value){
-  OLED_SendCommand(0x81);//ustaw kontrast
-  OLED_SendCommand(value);
-}
-
 void OLED_int2string(uint8_t * string, uint32_t number){
   string[0] = (number>99999)?( number/100000 %10 + '0'):(' ');
   string[1] = (number>9999 )?((number/10000)%10 + '0'):(' ');
@@ -240,6 +200,7 @@ void OLED_int2string(uint8_t * string, uint32_t number){
 
 void OLED_paramTemplate(OLED_t * OLED){
   OLED_dispTxt(OLED, 0, 0,"Vmax:       m/s");
+  
   OLED_dispTxt(OLED, 0,10,"Amax:       m/s^");
   OLED_dispTxt(OLED, 0,21,"Hmax:       m");
 }
