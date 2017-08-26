@@ -1091,6 +1091,9 @@
             <name>$PROJ_DIR$\..\BMP.c</name>
         </file>
         <file>
+            <name>$PROJ_DIR$\..\FLASH.c</name>
+        </file>
+        <file>
             <name>$PROJ_DIR$\..\fonts.h</name>
         </file>
         <file>

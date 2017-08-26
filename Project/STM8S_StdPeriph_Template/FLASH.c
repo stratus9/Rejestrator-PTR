@@ -14,6 +14,14 @@ void FLASH_PowerUp(){
   FLASH_CS(1);
   SPI_RWByte(0xAB);
   FLASH_CS(0);
+  
+  FLASH_WriteEnable(1);
+  
+  FLASH_CS(1);
+  SPI_RWByte(0x01);
+  SPI_RWByte(0x00);
+  SPI_RWByte(0x00);
+  FLASH_CS(0);
 }
 
 uint16_t FLASH_ReadID(){
@@ -65,7 +73,7 @@ void FLASH_arrayRead(uint32_t address, uint8_t * array, uint32_t length){
 	FLASH_CS(0);
 }
 
-void FLASH_waitForReady(void){
+void FLASH_waitForReady(){
 	while(FLASH_status() & 0x01) Delay(1000);
 }
 
@@ -90,4 +98,51 @@ void FLASH_pageWrite(uint32_t page, uint8_t * array, uint16_t length){  //strona
 		SPI_RWByte(*array++);
 	}
 	FLASH_CS(0);
+}
+void FLASH_chipErase(){ // okolo 50s na wyczyszczenie
+        FLASH_waitForReady();
+	FLASH_WriteEnable(1);
+        
+        FLASH_CS(1);
+	SPI_RWByte(0xC7);	//CHIP ERASE
+	FLASH_CS(0);
+}
+
+void FLASH_blockErase(uint8_t block){   // okolo 1s na wyczyszczenie
+        FLASH_waitForReady();
+	FLASH_WriteEnable(1);
+        
+        FLASH_CS(1);
+	SPI_RWByte(0xD8);	//Block erase
+	SPI_RWByte(block);
+        SPI_RWByte(0x00);
+        SPI_RWByte(0x00);
+	FLASH_CS(0);
+}
+
+
+void FLASH_program1byte(uint32_t address, uint8_t val){
+        FLASH_waitForReady();
+	FLASH_WriteEnable(1);
+        
+        FLASH_CS(1);
+	SPI_RWByte(0x02);	//Page program
+	SPI_RWByte((address>>16) & 0xFF);
+	SPI_RWByte((address>>8) & 0xFF);
+	SPI_RWByte(address & 0xFF);
+	SPI_RWByte(val);
+	FLASH_CS(0);
+}
+
+uint8_t FLASH_Read1byte(uint32_t address){
+	FLASH_waitForReady();
+	FLASH_CS(1);
+	SPI_RWByte(0x03);	//READ
+	SPI_RWByte((address>>16) & 0xFF);
+	SPI_RWByte((address>>8) & 0xFF);
+	SPI_RWByte(address & 0xFF);
+	uint8_t tmp = SPI_RWByte(0);
+	FLASH_CS(0);
+        
+        return tmp;
 }

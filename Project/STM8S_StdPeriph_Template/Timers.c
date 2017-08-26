@@ -78,14 +78,14 @@ void Timer2_Init(){
 void Timer2_ISR(){    
   if(beep_trigger){
     beep++;
-    if(beep > 20) beep = 0;
+    if(beep > 8) beep = 0;      //bylo 20
     if(beep == 4) Beep_Start();
     else Beep_Stop();
   }
   else Beep_Stop();
   
-  //if((!(GPIOD->IDR & 0x02))) LED_BLUE(1);
-  //else LED_BLUE(0);
+  if((state_d.button < 250) && (!(GPIOD->IDR & 0x02))) state_d.button++;
+  else state_d.button = 0;
 }
 
 //==========================================================================================================

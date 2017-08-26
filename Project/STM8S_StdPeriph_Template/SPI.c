@@ -59,7 +59,5 @@ uint8_t SPI_RWByte(uint8_t value){
 }
 
 void SPI_ClearRXBuffer(){
-  while ((SPI->SR & SPI_FLAG_RXNE)){
-    SPI_ReceiveData();
-  }
+  while ((SPI->SR & SPI_FLAG_RXNE)) SPI->DR;
 }

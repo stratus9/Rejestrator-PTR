@@ -80,7 +80,7 @@ void BMP_read(bmp_t * BMP) {
   fvar2 = p*((float)BMP->P8)/32768.0;
   p = p + (fvar1 + fvar2+((float)BMP->P7))/16.0;
   p *= 100.0;
-  BMP->press = (int32_t)(p*0.95 + BMP->press*0.05);
+  BMP->press = (int32_t)(p*0.1 + BMP->press*0.9);
 }
 
 int32_t BMP_altitude(int32_t startPress, int32_t currPress){

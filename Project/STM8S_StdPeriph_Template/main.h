@@ -54,14 +54,14 @@ typedef struct bmp_s{
   int32_t temp;
   int32_t altitude;
   int32_t start_altitude;
-  int32_t real_altitude;
-  int32_t max_altitude;
+  uint32_t real_altitude;
+  uint32_t max_altitude;
   int32_t velocity;
   
   //float x1, x2, x3, x4;
 } bmp_t;
 
-/*
+
 typedef union {
 	uint8_t array[32];
 	struct{
@@ -76,8 +76,8 @@ typedef union {
                 int16_t velocity;
 		};
 } FLASH_dataStruct_t;
-*/
-/*
+
+
 typedef struct{
 	uint16_t pageNo;
 	uint8_t position;
@@ -86,12 +86,13 @@ typedef struct{
 		uint8_t data[256];
 		};
 }FLASH_pageStruct_t;
-*/
+
 
 typedef struct {
   uint8_t devState;
   uint8_t flightState;
   uint8_t button;
+  uint16_t tmp;
 } state_t;
 
 extern volatile uint8_t beep;

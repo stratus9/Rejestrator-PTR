@@ -38,6 +38,7 @@
 #include "I2C.h"
 #include "Timers.h"
 #include "OLED.h"
+#include "FLASH.h"
 //#include <stdint.h>
 
 /* Private defines -----------------------------------------------------------*/
@@ -49,6 +50,7 @@ bmp_t BMP;
 volatile uint8_t beep = 0;
 volatile uint8_t beep_trigger = 0;
 state_t state_d;
+FLASH_pageStruct_t FLASH_pageStruct_d;
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -83,6 +85,7 @@ void main(void){
   OLED_Init();                  //169 B
   ADXL_init();                  //37 B
   BMP_init(&BMP);               //241 B
+  FLASH_PowerUp();
   
   OLED_Clear(&OLED_buffer, 0);  //64B 
   OLED_paramTemplate(&OLED_buffer);
@@ -95,8 +98,19 @@ void main(void){
   BMP.max_altitude = 0;
   BMP.start_altitude = 0;
   
+  
+  
+  
+   state_d.tmp = FLASH_status();
+   beep_trigger = 1;
+   FLASH_chipErase();
+   FLASH_waitForReady();
+   beep_trigger = 0;
+  
+  
+  
   uint8_t framecount = 0;
-  uint8_t buffer[8];
+  
   while (1){
    StateMachine();
     
@@ -107,8 +121,9 @@ void main(void){
    if(BMP.min_pressure > BMP.press) BMP.min_pressure = BMP.press;
    
    BMP.altitude = BMP_altitude(BMP.max_pressure, BMP.press);
-   if(BMP.max_altitude < BMP.altitude) BMP.max_altitude = BMP.altitude;
    if(BMP.altitude < BMP.start_altitude) BMP.start_altitude = BMP.altitude;
+   BMP.real_altitude = (uint32_t)labs(BMP.altitude - BMP.start_altitude);
+   if(BMP.max_altitude < BMP.real_altitude) BMP.max_altitude = BMP.real_altitude;
    
    if(Sensors.max_acc < Sensors.accY) Sensors.max_acc = Sensors.accY;
    
@@ -117,8 +132,8 @@ void main(void){
      framecount = 0;
      OLED_dispVelocity(&OLED_buffer, (uint32_t)BMP.press/100);
      //OLED_dispAcceleration(&OLED_buffer, (uint32_t)BMP.diff_pressure);
-     //OLED_dispAcceleration(&OLED_buffer, labs((int32_t)Sensors.max_acc*4));
-     OLED_dispAltitude(&OLED_buffer, labs(BMP.altitude - BMP.start_altitude)/100);
+     OLED_dispAcceleration(&OLED_buffer, BMP.max_altitude);
+     OLED_dispAltitude(&OLED_buffer, BMP.real_altitude);
     
      OLED_RefreshRAM(&OLED_buffer);
    }
@@ -149,7 +164,7 @@ void StateMachine(){
         //-------case 1 wait for start-----------------------------------------
         case 1: 
         //miganie zielonej diodki jako gotowosc
-          LED_GREEN(1);
+          LED_BLUE(1);
         if(abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) > 450) state_d.devState = 2;
         if(0){
           state_d.devState = 0;
@@ -159,15 +174,17 @@ void StateMachine(){
                 
         //-------case 2 wait for landing-----------------------------------------
         case 2:
+          LED_BLUE(0);
         //lecimy czyli zapis parametrów do FLASH
-        if((abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) < 450) && (labs(BMP.velocity) <= 1)) state_d.devState = 3;
+        if((abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) < 700) && (labs(BMP.velocity) <= 1)) state_d.devState = 3;
         break;
         
         //-------case 3 wait for pickup-----------------------------------------
         case 3:
+        LED_BLUE(1);
         //wylacz zapis flash
-        //wlacz buzzer
         //wylacz ledy i ekran
+        beep_trigger = 1;
         if(state_d.button > 5) {
             state_d.devState = 4;
             while(!(GPIOD->IDR & 0x02)) {}
@@ -178,7 +195,7 @@ void StateMachine(){
         //-------case 4 displ values-----------------------------------------
         case 4:
         //wypisz wynik
-        //wylacz buzzer
+        beep_trigger = 0;
         if(state_d.button > 20) {
             state_d.devState = 0;
             while(!(GPIOD->IDR & 0x02)) {}
