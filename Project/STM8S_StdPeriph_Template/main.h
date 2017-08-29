@@ -54,8 +54,8 @@ typedef struct bmp_s{
   int32_t temp;
   int32_t altitude;
   int32_t start_altitude;
-  uint32_t real_altitude;
-  uint32_t max_altitude;
+  int32_t real_altitude;
+  int32_t max_altitude;
   int32_t velocity;
   
   //float x1, x2, x3, x4;
@@ -65,17 +65,18 @@ typedef struct bmp_s{
 typedef union {
 	uint8_t array[32];
 	struct{
-		int32_t pressure;
-                uint8_t state;
-                int32_t altitude;
-                int32_t temperature;
-                uint16_t Vbat;
-                int16_t accX;
-                int16_t accY;
-                int16_t accZ;
-                int16_t velocity;
+                uint8_t marker;         // OK
+		int32_t pressure;       // OK
+                uint8_t state;          // OK
+                int32_t altitude;       // OK
+                int32_t temperature;    // OK
+                uint16_t Vbat;          // ??? warunkowo OK
+                int16_t accX;           // OK
+                int16_t accY;           // OK
+                int16_t accZ;           // OK
+                int16_t velocity;       // ??? warunkowo OK
 		};
-} FLASH_dataStruct_t;
+} FLASH_dataStruct_t;   //24 B
 
 
 typedef struct{
@@ -115,5 +116,7 @@ void dev_CheckSensors();
 
 void ButtonISR();
 void ISR_init();
+
+void FLASH_saveData();
 
 #endif /* __MAIN_H */

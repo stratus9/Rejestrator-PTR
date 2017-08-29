@@ -113,6 +113,15 @@ void main(void){
   
   while (1){
    StateMachine();
+   if(UART1->SR & 0x20){
+     uint8_t tmp = UART1->DR;
+     if(tmp == 0xAA) USART_SendString("Odebrano 0xAA\n");
+     else USART_SendString("Odebrano cos\n");
+   }
+   //Sensors.tmp = UART1->DR;
+   //if(Sensors.tmp == 0xAA) FLASH_ReadOut();
+   //USART_SendChar('A');
+   //USART_SendString("Loop\n");
     
    ADXL_read(&Sensors); //87 B
    BMP_read(&BMP);       //430 B
@@ -165,6 +174,7 @@ void StateMachine(){
         case 1: 
         //miganie zielonej diodki jako gotowosc
           LED_BLUE(1);
+          FLASH_saveData();     // <------------- wywalic tylko DEV
         if(abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) > 450) state_d.devState = 2;
         if(0){
           state_d.devState = 0;
@@ -175,6 +185,7 @@ void StateMachine(){
         //-------case 2 wait for landing-----------------------------------------
         case 2:
           LED_BLUE(0);
+          FLASH_saveData();
         //lecimy czyli zapis parametrów do FLASH
         if((abs(Sensors.accX) + abs(Sensors.accY) + abs(Sensors.accZ) < 700) && (labs(BMP.velocity) <= 1)) state_d.devState = 3;
         break;
@@ -316,6 +327,33 @@ void dev_CheckSensors(){
 }
 */
 
+
+void FLASH_saveData(){
+	FLASH_dataStruct_t FLASH_struct_d;
+	FLASH_struct_d.marker = 0xAA;
+	
+	FLASH_struct_d.pressure = BMP.press;
+	FLASH_struct_d.state = state_d.devState;
+	FLASH_struct_d.altitude = BMP.altitude;
+	FLASH_struct_d.temperature = BMP.temp;
+	FLASH_struct_d.Vbat = 317;
+	
+	FLASH_struct_d.accX = Sensors.accX;
+	FLASH_struct_d.accY = Sensors.accY;
+	FLASH_struct_d.accZ = Sensors.accZ;
+	FLASH_struct_d.velocity = BMP.velocity;
+	
+	uint8_t pagePosition = FLASH_pageStruct_d.position;
+	if (pagePosition < 8){
+		FLASH_pageStruct_d.FLASH_dataStruct[pagePosition] = FLASH_struct_d;
+		FLASH_pageStruct_d.position++;
+	}
+	if(pagePosition >=8){
+		FLASH_pageWrite(FLASH_pageStruct_d.pageNo, FLASH_pageStruct_d.data, 256);
+		FLASH_pageStruct_d.pageNo++;
+		FLASH_pageStruct_d.position = 0;
+	}
+}
 #ifdef USE_FULL_ASSERT
 
 /**

@@ -51,14 +51,14 @@ void UART1_DeInit_Fast(){
   UART1->PSCR = 0x00;   //4B
 }
 
-void USART_SendString(char * value){
+void USART_SendString(uint8_t * value){
   while(*value){
     while (!(UART1->SR  & 0x80)){}
-    UART1_SendData8(*value++);
+    UART1->DR = (*value++);
   }
 }
 
-void USART_SendChar(char value){
+void USART_SendChar(uint8_t value){
   while (!(UART1->SR  & 0x80)){}
-  UART1_SendData8(value);
+  UART1->DR = (value);
 }

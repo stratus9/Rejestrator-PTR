@@ -15,5 +15,6 @@ void FLASH_blockErase(uint8_t block);
 
 void FLASH_program1byte(uint32_t address, uint8_t val);
 uint8_t FLASH_Read1byte(uint32_t address);
+void FLASH_ReadOut();
 
 #endif

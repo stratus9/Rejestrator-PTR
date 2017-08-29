@@ -5,6 +5,8 @@
 #include "SPI.h"
 #include "FLASH.h"
 #include "Timers.h"
+#include "OLED.h"
+#include "UART.h"
 
 //==========================================================================================================
 //                              FLASH
@@ -145,4 +147,45 @@ uint8_t FLASH_Read1byte(uint32_t address){
 	FLASH_CS(0);
         
         return tmp;
+}
+
+void FLASH_ReadOut(){
+  FLASH_dataStruct_t FLASH_dataStruct;
+  uint8_t string[33];
+  uint32_t position = 0;
+  USART_SendString("Readout start!\n");
+  do{
+    FLASH_arrayRead(position, FLASH_dataStruct.array, 32);
+    if(FLASH_dataStruct.array[0] != 0xAA) break;	//je?li brak zapisanych danych, zakoñcz przepisywanie
+    position += 32;
+    
+    OLED_int2string(string, FLASH_dataStruct.pressure);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.state);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.altitude);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.temperature);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.Vbat);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.accX);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.accY);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.accZ);
+    USART_SendString(string);
+    USART_SendChar(',');
+    OLED_int2string(string, FLASH_dataStruct.velocity);
+    USART_SendString(string);
+    USART_SendChar('\n');
+  } while((position < 0x200000) );
+  USART_SendString("Readout end!\n");
 }
