@@ -47,7 +47,7 @@ typedef struct bmp_s{
   //float p;
   
   int32_t press;
-  int32_t press_f;
+  int32_t press_raw;
   int32_t min_pressure;
   int32_t max_pressure;
   int32_t diff_pressure;
@@ -67,6 +67,7 @@ typedef union {
 	struct{
                 uint8_t marker;         // OK
 		int32_t pressure;       // OK
+                int32_t pressure_raw;   // OK
                 uint8_t state;          // OK
                 int32_t altitude;       // OK
                 int32_t temperature;    // OK

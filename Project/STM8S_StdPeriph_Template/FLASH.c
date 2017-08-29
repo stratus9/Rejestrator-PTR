@@ -151,41 +151,74 @@ uint8_t FLASH_Read1byte(uint32_t address){
 
 void FLASH_ReadOut(){
   FLASH_dataStruct_t FLASH_dataStruct;
-  uint8_t string[33];
+  uint8_t string[12];
   uint32_t position = 0;
-  USART_SendString("Readout start!\n");
+  USART_SendString("No,Press,PressRaw,State,Alti,Temp,Vbat,AccX,AccY,AccZ,Velo!\n");
   do{
     FLASH_arrayRead(position, FLASH_dataStruct.array, 32);
     if(FLASH_dataStruct.array[0] != 0xAA) break;	//je?li brak zapisanych danych, zakoñcz przepisywanie
     position += 32;
     
-    OLED_int2string(string, FLASH_dataStruct.pressure);
+    FLASH_int2string(string, (position>>5));
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.state);
+    
+    FLASH_int2string(string, FLASH_dataStruct.pressure);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.altitude);
+    
+    FLASH_int2string(string, FLASH_dataStruct.pressure_raw);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.temperature);
+    
+    FLASH_int2string(string, FLASH_dataStruct.state);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.Vbat);
+    
+    FLASH_int2string(string, FLASH_dataStruct.altitude);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.accX);
+    
+    FLASH_int2string(string, FLASH_dataStruct.temperature);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.accY);
+    
+    FLASH_int2string(string, FLASH_dataStruct.Vbat);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.accZ);
+    
+    FLASH_int2string(string, FLASH_dataStruct.accX*100/256);
     USART_SendString(string);
     USART_SendChar(',');
-    OLED_int2string(string, FLASH_dataStruct.velocity);
+    
+    FLASH_int2string(string, FLASH_dataStruct.accY*100/256);
+    USART_SendString(string);
+    USART_SendChar(',');
+    
+    FLASH_int2string(string, FLASH_dataStruct.accZ*100/256);
+    USART_SendString(string);
+    USART_SendChar(',');
+    
+    FLASH_int2string(string, FLASH_dataStruct.velocity);
     USART_SendString(string);
     USART_SendChar('\n');
   } while((position < 0x200000) );
   USART_SendString("Readout end!\n");
+}
+
+void FLASH_int2string(uint8_t * string, int32_t number){
+  if(number < 0){
+    string[0] = '-';
+    number = -number;
+  }
+  else string[0] = '+';
+  string[1] = (number/10000000 )%10 + '0';
+  string[2] = (number/1000000  )%10 + '0';
+  string[3] = (number/100000   )%10 + '0';
+  string[4] = (number/10000    )%10 + '0';
+  string[5] = (number/1000 )%10    + '0';
+  string[6] = (number/100  )%10    + '0';
+  string[7] = (number/10   )%10    + '0';
+  string[8] = (number      )%10    + '0';
+  string[9] = '\0';
 }

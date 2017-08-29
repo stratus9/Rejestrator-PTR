@@ -20,13 +20,14 @@ void USART_Initialization(void){
 void UART1_Init_Fast(){
   #define UART1_baud 115200
   #define UART1_BBR1 0x08
-  #define UART1_BBR2 0x0B
+  #define UART1_BBR2 0x0A
 
   UART1->CR1 = 0x00;           //set 8-bit word length, no parity, UART enabled (change for low power)
   UART1->CR3 = 0x00;           //set 1 bit Stop
 
-  UART1->BRR1 = UART1_BBR1; 
-  UART1->BRR2 = UART1_BBR2;       
+  UART1->BRR2 = 0x0a;  
+  UART1->BRR1 = 0x08; 
+
    
   UART1->CR2 |= 0x08 | 0x04;    //RX i TX enabled
 }

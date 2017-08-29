@@ -57,6 +57,7 @@ FLASH_pageStruct_t FLASH_pageStruct_d;
 
 void main(void){
   //while(1){}
+  __halt();
   //----------------Select fCPU = 16MHz--------------------------//
   CLK->CKDIVR = 0x00;    //CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
   
@@ -93,8 +94,8 @@ void main(void){
   
   
   BMP_read(&BMP);       //430 B
-  BMP.max_pressure = BMP.press_f;
-  BMP.min_pressure = BMP.press_f;
+  BMP.max_pressure = BMP.press;
+  BMP.min_pressure = BMP.press;
   BMP.max_altitude = 0;
   BMP.start_altitude = 0;
   
@@ -115,8 +116,7 @@ void main(void){
    StateMachine();
    if(UART1->SR & 0x20){
      uint8_t tmp = UART1->DR;
-     if(tmp == 0xAA) USART_SendString("Odebrano 0xAA\n");
-     else USART_SendString("Odebrano cos\n");
+     if(tmp == 0xAA) FLASH_ReadOut();
    }
    //Sensors.tmp = UART1->DR;
    //if(Sensors.tmp == 0xAA) FLASH_ReadOut();
@@ -333,6 +333,7 @@ void FLASH_saveData(){
 	FLASH_struct_d.marker = 0xAA;
 	
 	FLASH_struct_d.pressure = BMP.press;
+        FLASH_struct_d.pressure_raw = BMP.press_raw;
 	FLASH_struct_d.state = state_d.devState;
 	FLASH_struct_d.altitude = BMP.altitude;
 	FLASH_struct_d.temperature = BMP.temp;
