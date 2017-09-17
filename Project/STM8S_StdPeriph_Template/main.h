@@ -12,6 +12,8 @@ typedef struct sensors_s{
   int16_t accY;
   int16_t accZ;
   
+  int16_t acc_sum_smooth;
+  
   int16_t min_acc;
   int16_t max_acc;
 
@@ -53,6 +55,7 @@ typedef struct bmp_s{
   int32_t diff_pressure;
   int32_t temp;
   int32_t altitude;
+  int32_t old_altitude;
   int32_t start_altitude;
   int32_t real_altitude;
   int32_t max_altitude;

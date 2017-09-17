@@ -26,4 +26,6 @@ void ADXL_read(sensors_t * sensor){
   sensor->accX = buffer[1]<<8 | buffer[0];
   sensor->accY = buffer[3]<<8 | buffer[2];
   sensor->accZ = buffer[5]<<8 | buffer[4];
+  
+  sensor->acc_sum_smooth = (int16_t)(0.9*sensor->acc_sum_smooth + 0.1*(abs(sensor->accX) + abs(sensor->accY) + abs(sensor->accZ))); 
 }

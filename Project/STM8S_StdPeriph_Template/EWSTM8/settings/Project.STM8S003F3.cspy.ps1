@@ -23,9 +23,9 @@ param([String]$debugfile = "");
 
 if ($debugfile -eq "")
 {
-& "C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0_2\common\bin\cspybat" -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" --backend -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
+& "C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "D:\Konto bartek\Dokumenty\GitHub\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" --backend -f "D:\Konto bartek\Dokumenty\GitHub\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
 }
 else
 {
-& "C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0_2\common\bin\cspybat" -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" --debug_file=$debugfile --backend -f "C:\Users\bartek\Documents\Atmel Studio\Git\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
+& "C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "D:\Konto bartek\Dokumenty\GitHub\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.general.xcl" --debug_file=$debugfile --backend -f "D:\Konto bartek\Dokumenty\GitHub\Rejestrator-PTR\Project\STM8S_StdPeriph_Template\EWSTM8\settings\Project.STM8S003F3.driver.xcl" 
 }

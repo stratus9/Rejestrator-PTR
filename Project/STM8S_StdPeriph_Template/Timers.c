@@ -100,7 +100,7 @@ void Beep_Initialization(){
 
 inline void Beep_Start(){
   /* Enable the BEEP peripheral */
-    //BEEP->CSR |= BEEP_CSR_BEEPEN;
+    BEEP->CSR |= BEEP_CSR_BEEPEN;
 }
 
 inline void Beep_Stop(){

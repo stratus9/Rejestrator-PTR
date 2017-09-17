@@ -93,3 +93,8 @@ int32_t BMP_altitude(int32_t startPress, int32_t currPress){
    x4 = -27490.0*x1;
    return (int32_t)((x2 + x3 + x4 + 15520.0)*100.0);
 }
+
+void BMP_velo(bmp_t * bmp){
+  int32_t velo = (bmp->altitude - bmp->old_altitude);
+  bmp->velocity = (int32_t)(0.9*bmp->velocity + 0.1*velo);
+}
