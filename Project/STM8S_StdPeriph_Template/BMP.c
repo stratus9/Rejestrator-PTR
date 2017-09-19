@@ -46,22 +46,25 @@ void BMP_init(bmp_t * BMP) {
 
 void BMP_read(bmp_t * BMP) {
   uint8_t buffer[7];
+  int32_t UT;
+  int32_t UP;
+  
   I2C_ReadNByte(0xEE, 0xF7, buffer, 6);
   
-  BMP->UP = buffer[0];
-  BMP->UP = BMP->UP << 8 | buffer[1];
-  BMP->UP = BMP->UP << 8 | buffer[2];
-  BMP->UP >>= 4;
+  UP = buffer[0];
+  UP = UP << 8 | buffer[1];
+  UP = UP << 8 | buffer[2];
+  UP >>= 4;
   
-  BMP->UT = buffer[3];
-  BMP->UT = BMP->UT << 8 | buffer[4];
-  BMP->UT = BMP->UT << 8 | buffer[5];
-  BMP->UT >>= 4;
+  UT = buffer[3];
+  UT = UT << 8 | buffer[4];
+  UT = UT << 8 | buffer[5];
+  UT >>= 4;
   
   //--------- Temp -------------
   int32_t var1, var2, tfine;
-  var1  = ((((BMP->UT>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
-  var2  = (((((BMP->UT>>4) - ((int32_t)BMP->T1)) * ((BMP->UT>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
+  var1  = ((((UT>>3) - ((int32_t)BMP->T1 <<1))) * ((int32_t)BMP->T2)) >> 11;
+  var2  = (((((UT>>4) - ((int32_t)BMP->T1)) * ((UT>>4) - ((int32_t)BMP->T1))) >> 12) * ((int32_t)BMP->T3)) >> 14;
   
   tfine = var1 + var2;
   BMP->temp = (tfine)>>9;
@@ -74,14 +77,15 @@ void BMP_read(bmp_t * BMP) {
   fvar2 = (fvar2/4.0) + ((float)BMP->P4)*65536.0;
   fvar1 = (((float)BMP->P3) * fvar1 * fvar1/524288.0 + ((float)BMP->P2) * fvar1)/524288.0;
   fvar1 = (1.0 + fvar1/32768.0)*((float)BMP->P1);
-  p = 1048576.0-((float)BMP->UP);
+  p = 1048576.0-((float)UP);
   p = (p-(fvar2/4096.0))*6250.0 / fvar1;
   fvar1 = ((float)BMP->P9)*p*p/2147483648.0;
   fvar2 = p*((float)BMP->P8)/32768.0;
   p = p + (fvar1 + fvar2+((float)BMP->P7))/16.0;
   p *= 100.0;
-  if((p > 5000000UL) && (abs((int32_t)p - BMP->press) < 400000UL)) BMP->press = (int32_t)(p*0.05 + BMP->press*0.95);
+  
   BMP->press_raw = (int32_t)(p);
+  if((p > 5000000UL) && (labs(BMP->press - (int32_t)p) < 9000UL)) BMP->press = (int32_t)(p*0.05 + BMP->press*0.95);
 }
 
 int32_t BMP_altitude(int32_t startPress, int32_t currPress){
@@ -95,6 +99,6 @@ int32_t BMP_altitude(int32_t startPress, int32_t currPress){
 }
 
 void BMP_velo(bmp_t * bmp){
-  int32_t velo = (bmp->altitude - bmp->old_altitude);
-  bmp->velocity = (int32_t)(0.9*bmp->velocity + 0.1*velo);
+  int32_t velo = (bmp->altitude - bmp->old_altitude)*100;
+  bmp->velocity = (int32_t)(9*bmp->velocity + 1*velo)/10;
 }

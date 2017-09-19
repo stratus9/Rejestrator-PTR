@@ -36,13 +36,14 @@ typedef struct bmp_s{
   int16_t  P8;
   int16_t  P9;
   
-  int32_t UT;
-  int32_t UP;
+  //int32_t UT;
+  //int32_t UP;
   
   //int32_t var1;
   //int32_t var2;
   int32_t tfine;
   int32_t T;
+  int32_t max_velocity;
   
   //float fvar1;
   //float fvar2;
@@ -60,6 +61,7 @@ typedef struct bmp_s{
   int32_t real_altitude;
   int32_t max_altitude;
   int32_t velocity;
+  int32_t tmp;
   
   //float x1, x2, x3, x4;
 } bmp_t;

@@ -76,11 +76,15 @@ void Timer2_Init(){
 //                              ISR
 //==========================================================================================================
 void Timer2_ISR(){    
-  if(beep_trigger){
+  if(beep_trigger == 1){
     beep++;
     if(beep > 8) beep = 0;      //bylo 20
     if(beep == 4) Beep_Start();
     else Beep_Stop();
+  }
+  else if(beep_trigger == 2){
+    Beep_Start();
+    beep_trigger = 0;
   }
   else Beep_Stop();
   
