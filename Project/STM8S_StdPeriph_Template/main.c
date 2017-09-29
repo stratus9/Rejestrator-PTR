@@ -117,6 +117,12 @@ void main(void){
    if(UART1->SR & 0x20){
      uint8_t tmp = UART1->DR;
      if(tmp == 0xAA) FLASH_ReadOut();
+     else if(tmp == 0xEE) {
+       beep_trigger = 1;
+       FLASH_chipErase();
+       FLASH_waitForReady();
+       beep_trigger = 0;
+     }
    }
    
    if(state_d.devState > 0){
@@ -225,6 +231,10 @@ void StateMachine(){
         if(state_d.button > 20) {
             state_d.devState = 0;
             beep_trigger = 2;
+            OLED_Clear(&OLED_buffer, 0);  //64B 
+            OLED_RefreshRAM(&OLED_buffer);        //6 B
+            LED_GREEN(0);
+            LED_BLUE(0);
             while(!(GPIOD->IDR & 0x02)) {}
             state_d.button = 0;
         }

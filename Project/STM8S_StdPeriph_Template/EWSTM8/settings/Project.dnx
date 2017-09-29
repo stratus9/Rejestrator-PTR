@@ -12,7 +12,7 @@
         <ByteLimit>50</ByteLimit>
     </Stack>
     <DebugChecksum>
-        <Checksum>650589591</Checksum>
+        <Checksum>2725340097</Checksum>
     </DebugChecksum>
     <CallStack>
         <ShowArgs>0</ShowArgs>
@@ -26,15 +26,13 @@
         <Category>_ 0</Category>
     </Log_file>
     <struct_types>
-        <Fmt0>bmp_t-UP	3	0</Fmt0>
-        <Fmt1>bmp_t-UT	3	0</Fmt1>
-        <Fmt2>bmp_t-temp	3	0</Fmt2>
-        <Fmt3>bmp_t-tfine	3	0</Fmt3>
-        <Fmt4>sensors_t-tmp	4	0</Fmt4>
-        <Fmt5>state_t-button	3	0</Fmt5>
-        <Fmt6>state_t-devState	3	0</Fmt6>
-        <Fmt7>state_t-flightState	3	0</Fmt7>
-        <Fmt8>state_t-tmp	5	0</Fmt8>
+        <Fmt0>bmp_t-temp	3	0</Fmt0>
+        <Fmt1>bmp_t-tfine	3	0</Fmt1>
+        <Fmt2>sensors_t-tmp	4	0</Fmt2>
+        <Fmt3>state_t-button	3	0</Fmt3>
+        <Fmt4>state_t-devState	3	0</Fmt4>
+        <Fmt5>state_t-flightState	3	0</Fmt5>
+        <Fmt6>state_t-tmp	5	0</Fmt6>
     </struct_types>
     <array_types>
         <Fmt0>uint8_t[512]	5	0</Fmt0>
@@ -63,7 +61,7 @@
         <LogFile>_ ""</LogFile>
     </TermIOLog>
     <Breakpoints>
-        <Bp0>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.398.1" 0 0 0 0 "" 0 ""</Bp0>
+        <Bp0>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.0.1" 0 0 0 0 "" 0 ""</Bp0>
         <Count>1</Count>
     </Breakpoints>
     <Aliases>
