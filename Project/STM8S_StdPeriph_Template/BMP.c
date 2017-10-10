@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "I2C.h"
 #include "BMP.h"
+//#include <stdint.h>
 
 //==========================================================================================================
 //                              BMP280
@@ -40,7 +41,13 @@ void BMP_init(bmp_t * BMP) {
   */
   
   uint8_t data[2];
-  data[0] = 0xF4; data[1] = 0x3F;
+  data[0] = 0xF4; data[1] = 0x3F;       //temp - 1x oversampling, press - 16x oversampling, Normal mode (powinn byc 8x)
+  I2C_SendNByte(0xEE, data, 2);
+}
+
+void BMP_deinit(){
+  uint8_t data[2];
+  data[0] = 0xF4; data[1] = 0x00;       //Sleep mode
   I2C_SendNByte(0xEE, data, 2);
 }
 
@@ -85,7 +92,7 @@ void BMP_read(bmp_t * BMP) {
   p *= 100.0;
   
   BMP->press_raw = (int32_t)(p);
-  if((p > 5000000UL) && (labs(BMP->press - (int32_t)p) < 9000UL)) BMP->press = (int32_t)(p*0.05 + BMP->press*0.95);
+  if((p > 5000000UL) && (labs(BMP->press_raw - (int32_t)p) < 20000UL)) BMP->press = (int32_t)(p*0.05 + BMP->press*0.95);
 }
 
 int32_t BMP_altitude(int32_t startPress, int32_t currPress){

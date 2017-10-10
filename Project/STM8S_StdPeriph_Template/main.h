@@ -17,7 +17,7 @@ typedef struct sensors_s{
   int16_t min_acc;
   int16_t max_acc;
 
-  uint16_t tmp;
+  //uint16_t tmp;
   
 }sensors_t;
 
@@ -61,9 +61,6 @@ typedef struct bmp_s{
   int32_t real_altitude;
   int32_t max_altitude;
   int32_t velocity;
-  int32_t tmp;
-  
-  //float x1, x2, x3, x4;
 } bmp_t;
 
 
@@ -80,7 +77,7 @@ typedef union {
                 int16_t accX;           // OK
                 int16_t accY;           // OK
                 int16_t accZ;           // OK
-                int16_t velocity;       // ??? warunkowo OK
+                int16_t velocity;       // OK
 		};
 } FLASH_dataStruct_t;   //24 B
 
@@ -95,11 +92,11 @@ typedef struct{
 }FLASH_pageStruct_t;
 
 
-typedef struct {
+typedef volatile struct {
   uint8_t devState;
   uint8_t flightState;
   uint8_t button;
-  uint16_t tmp;
+  uint8_t I2C_inprogress;
 } state_t;
 
 extern volatile uint8_t beep;
@@ -108,7 +105,8 @@ extern state_t state_d;
 
 /* Private function prototypes -----------------------------------------------*/
 void StateMachine();
-
+void sleep_start();
+void sleep_exit();
 
 /* Private function prototypes -----------------------------------------------*/
 void GPIO_Initialization(void);
@@ -124,5 +122,6 @@ void ButtonISR();
 void ISR_init();
 
 void FLASH_saveData();
+void OLED_dispMax();
 
 #endif /* __MAIN_H */

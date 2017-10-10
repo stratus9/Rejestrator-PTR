@@ -61,37 +61,42 @@ void main(void){
   //----------------Select fCPU = 16MHz--------------------------//
   CLK->CKDIVR = 0x00;    //CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //118 B
   
+  //-----------------------Init GPIO-----------------------------//
+  GPIO_Init_Fast();        //263 B -> 57 B
+  LED_GREEN(1);
+  
+   //----------------------Init Timers---------------------------//
+  Timer2_Init();                //209 B -> 36 B           
+  ISR_init();
+  
   //----------------------Init UART------------------------------//
   USART_Initialization();       //1182 B -> 85 B
   
-  //------------------------Init I2C-----------------------------//
-  I2C_Initialization();       //605 B -> 69 B
   
-  //-----------------------Init GPIO-----------------------------//
-  GPIO_Init_Fast();        //263 B -> 57 B
+  
+  //------------------------Init I2C-----------------------------//
+  //I2C_reset();
+  I2C_Initialization();       //605 B -> 69 B
   
   //-----------------------Init SPI------------------------------//
   SPI_Initialization();        //
-   
-  //----------------------Init Timers---------------------------//
-  //Delay(10000);
-  Timer2_Init();                //209 B -> 36 B           
   
   //----------------------Init Buzzer---------------------------//
   Beep_Initialization();      //130 B -> 12 B
   
-  ISR_init();
   
+  Delay(100000);
   //0x3A - ADXL345 (0x1D<<1); 0xEE - BMP280 (0x77<<1);  0x3C<<1 - OLED
-  OLED_Init();                  //169 B
+  LED_BLUE(1);
+  LED_GREEN(0);
   ADXL_init();                  //37 B
   BMP_init(&BMP);               //241 B
+  OLED_Deinit();               
   FLASH_PowerUp();
   
-  OLED_Clear(&OLED_buffer, 0);  //64B 
-  OLED_paramTemplate(&OLED_buffer);
+  OLED_Clear(&OLED_buffer, 0x00);  //64B 
+  //OLED_paramTemplate(&OLED_buffer);
   //OLED_RefreshRAM(&OLED_buffer);        //6 B
-  
   
   BMP_read(&BMP);       //430 B
   BMP.press = BMP.press_raw;    //inicjalizacji filtra cisnienia
@@ -102,16 +107,13 @@ void main(void){
   
   
   
-   state_d.tmp = FLASH_status();
+   //state_d.tmp = FLASH_status();
    //beep_trigger = 1;
    //FLASH_chipErase();
    //FLASH_waitForReady();
    //beep_trigger = 0;
   
-  
-  
-  uint8_t framecount = 0;
-  
+  LED_BLUE(0);
   while (1){
    StateMachine();
    if(UART1->SR & 0x20){
@@ -150,24 +152,28 @@ void main(void){
      //Buforowanie najwiekszego przyspieszenia
      if(Sensors.max_acc < labs(Sensors.accY)) Sensors.max_acc = labs(Sensors.accY);
    }
-   
-   //Obsluga OLED
-   framecount++;
-   if((framecount > 10) && (state_d.devState >= 4)){
-     framecount = 0;
-     OLED_dispVelocity(&OLED_buffer, 0);
-     OLED_dispAcceleration(&OLED_buffer, (Sensors.max_acc > 255)?((((int32_t)Sensors.max_acc*1000)>>8)-1000):0);
-     OLED_dispAltitude(&OLED_buffer, BMP.max_altitude);
-    
-     OLED_RefreshRAM(&OLED_buffer);
-   }
 
-   Delay(10000);       //11 B
+   Delay(19000);       //11 B
    if(state_d.devState) LED_GREEN(1);
+   if(state_d.devState == 2) LED_BLUE(1);
    //LED_GREEN(1);
-   Delay(10000);    //3 B
+   Delay(1000);    //3 B
    LED_GREEN(0); 
+   LED_BLUE(0);
   }
+}
+
+//======================================================================================
+//                              Sleep func
+//======================================================================================
+void sleep_start(){
+  //TODO: 
+  //    -konfigurcja usypiania
+}
+
+void sleep_exit(){
+  //TODO:
+  //    -przywrócenie ustawien pelnej mocy
 }
 
 //======================================================================================
@@ -182,19 +188,27 @@ void StateMachine(){
           if(state_d.button > 20){
             state_d.devState = 1;
             beep_trigger = 2;
-            while(!(GPIOD->IDR & 0x02)) {}
-            state_d.button = 0;
+            while(state_d.button) {}
+            BMP_read(&BMP);       //430 B
+            BMP.press = BMP.press_raw;    //inicjalizacji filtra cisnienia
+            BMP.max_pressure = BMP.press;
+            BMP.max_altitude = 0;
+            BMP.start_altitude = 0;
           }
         break;
                     
         //-------case 1 wait for start-----------------------------------------
         case 1: 
         //miganie zielonej diodki jako gotowosc
-        LED_BLUE(1);
-          //FLASH_saveData();     // <------------- wywalic tylko DEV
-        if(Sensors.acc_sum_smooth > 700UL) {
+        FLASH_saveData();     // <------------- wywalic tylko DEV
+        if(Sensors.acc_sum_smooth > 500UL) {
           state_d.devState = 2;
           beep_trigger = 2;
+        }
+        else if(state_d.button > 20){
+          state_d.devState = 0;
+          beep_trigger = 2;
+          while(state_d.button) {}
         }
         break;
                 
@@ -206,6 +220,13 @@ void StateMachine(){
           if((Sensors.acc_sum_smooth < 500) && (labs(BMP.real_altitude) < 2000) && (BMP.max_altitude > 1000)) {
             state_d.devState = 3;
             beep_trigger = 2;
+          }
+          else if(state_d.button > 20){
+            state_d.devState = 4;
+            beep_trigger = 2;
+            OLED_Init();
+            OLED_dispMax();
+            while(state_d.button) {}
           }
         break;
         
@@ -219,8 +240,9 @@ void StateMachine(){
         if(state_d.button > 5) {
             state_d.devState = 4;
             beep_trigger = 2;
-            while(!(GPIOD->IDR & 0x02)) {}
-            state_d.button = 0;
+            while(state_d.button) {}
+            OLED_Init();
+            OLED_dispMax();
         }
         break;
   
@@ -235,11 +257,19 @@ void StateMachine(){
             OLED_RefreshRAM(&OLED_buffer);        //6 B
             LED_GREEN(0);
             LED_BLUE(0);
-            while(!(GPIOD->IDR & 0x02)) {}
-            state_d.button = 0;
+            OLED_Deinit(); 
+            while(state_d.button) {}
         }
         break;
     }
+}
+
+void OLED_dispMax(){
+  OLED_paramTemplate(&OLED_buffer);
+  OLED_dispVelocity(&OLED_buffer, 0);
+  OLED_dispAcceleration(&OLED_buffer, (Sensors.max_acc > 255)?(((((int32_t)Sensors.max_acc-255)*1000)>>8)):0);
+  OLED_dispAltitude(&OLED_buffer, BMP.max_altitude);
+  OLED_RefreshRAM(&OLED_buffer);
 }
 
 //======================================================================================
@@ -263,6 +293,12 @@ void ISR_init(){
 //                              GPIO
 //======================================================================================
 void GPIO_Init_Fast(){
+  //PC4 - I2C Pull-up
+  GPIOC->ODR |= 0x10;   //Enable I2C Pull-up
+  GPIOC->DDR |= 0x10;   //Output
+  GPIOC->CR1 |= 0x10;   //Push-Pull
+  GPIOC->ODR |= 0x10;   //Enable I2C Pull-up
+  
   //PC3 - LED1
   GPIOC->CR2 &= ~0x08;  //slow slope 2MHz
   GPIOC->DDR &= ~0x08;  //Input
@@ -275,12 +311,6 @@ void GPIO_Init_Fast(){
   //GPIOA->CR2 &= ~0x04;  //slow slope 2MHz
   //GPIOA->DDR |= 0x04;   //Output
   //GPIOA->CR1 |= 0x04;   //Push-Pull
-  
-  //PC4 - I2C Pull-up
-  GPIOC->CR2 &= ~0x10;  //slow slope 2MHz
-  GPIOC->DDR |= 0x10;   //Output
-  GPIOC->CR1 |= 0x10;   //Push-Pull
-  GPIOC->ODR |= 0x10;   //Enable I2C Pull-up
   
   //PD2 - LCD RES#
   GPIOD->CR2 &= ~0x04;  //slow slope 2MHz

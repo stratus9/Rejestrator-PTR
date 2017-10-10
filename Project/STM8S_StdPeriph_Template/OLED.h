@@ -5,7 +5,7 @@
 #define OLED_dispAcceleration(OLED, value) OLED_dispInt(OLED, 32, 10, value)
 #define OLED_dispAltitude(OLED, value) OLED_dispInt(OLED, 32, 21, value)
 
-
+void OLED_Deinit();
 void OLED_Init();
 void OLED_Reset();
 void OLED_SendCommand(uint8_t data);

@@ -11,6 +11,10 @@
 //==========================================================================================================
 //                              OLED
 //==========================================================================================================
+void OLED_Deinit(){
+  OLED_Reset();
+}
+
 void OLED_Init(){
   OLED_Reset();
   OLED_SendCommand(0xAE);//wy³¹cz panel OLED
@@ -88,7 +92,7 @@ void OLED_Clear(OLED_t * OLED, uint8_t fill){
     }
   }
   
-  OLED_RefreshRAM(OLED);//zawartoœæ bufora do RAM obrazu
+  //OLED_RefreshRAM(OLED);//zawartoœæ bufora do RAM obrazu
 } 
 
 void OLED_SetColStart(){ 

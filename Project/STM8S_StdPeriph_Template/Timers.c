@@ -3,6 +3,7 @@
 #include "main.h"
 #include <stdlib.h>
 #include "Timers.h"
+#include "main.h"
 
 void Delay(uint32_t nCount){
     /* Decrement nCount value */
@@ -78,8 +79,8 @@ void Timer2_Init(){
 void Timer2_ISR(){    
   if(beep_trigger == 1){
     beep++;
-    if(beep > 8) beep = 0;      //bylo 20
-    if(beep == 4) Beep_Start();
+    if(beep > 25) beep = 0;      //bylo 20
+    if(beep == 25) Beep_Start();
     else Beep_Stop();
   }
   else if(beep_trigger == 2){
@@ -88,8 +89,16 @@ void Timer2_ISR(){
   }
   else Beep_Stop();
   
-  if((state_d.button < 250) && (!(GPIOD->IDR & 0x02))) state_d.button++;
+  if((state_d.button < 255) && (!(GPIOD->IDR & 0x02))) state_d.button++;
   else state_d.button = 0;
+  
+  if((state_d.button > 60)) {
+    LED_GREEN(0); 
+    LED_BLUE(0); 
+    Beep_Start();
+    while(!(GPIOD->IDR & 0x02)){}
+    WWDG->CR = WWDG_CR_WDGA;
+  }
 }
 
 //==========================================================================================================

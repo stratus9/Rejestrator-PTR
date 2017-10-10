@@ -2,6 +2,8 @@
 #include "main.h"
 #include "I2C.h"
 #include <stdlib.h>
+#include "Timers.h"
+#include "main.h"
 
 //==========================================================================================================
 //                              I2C
@@ -35,6 +37,7 @@ void I2C_Initialization(){
 }
 
 uint8_t I2C_SendNByte(uint8_t address, uint8_t * data, uint8_t length){
+  //state_d.I2C_inprogress = 1;
   while((I2C->SR3 & I2C_SR3_BUSY)); //wait for not busy
   
   I2C->CR2 |= I2C_CR2_START;    //I2C->CR2 |= I2C_CR2_START;
@@ -55,10 +58,12 @@ uint8_t I2C_SendNByte(uint8_t address, uint8_t * data, uint8_t length){
   }
   
   I2C->CR2 |= I2C_CR2_STOP;     //I2C->CR2 |= I2C_CR2_STOP;                    //Generate STOP
+  //state_d.I2C_inprogress = 0;
   return 1;
 }
 
 uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t length){
+  //state_d.I2C_inprogress = 1;
   I2C_SendNByte(address, &reg, 1);
   I2C->CR2 |= I2C_CR2_ACK;
   I2C->CR2 &= (uint8_t)(~I2C_CR2_POS);
@@ -90,5 +95,34 @@ uint8_t I2C_ReadNByte(uint8_t address, uint8_t reg, uint8_t * data, uint8_t leng
     *data = I2C->DR;
     data++;
   }
+  //state_d.I2C_inprogress = 0;
   return 1;
+}
+
+void I2C_reset(){  
+  GPIOB->DDR &= ~0x20;   //Input
+  GPIOB->CR1 |= 0x20;   //pull-up
+  if(!(GPIOB->IDR & 0x20)){
+    while(!(GPIOB->IDR & 0x20)){
+    GPIOB->CR2 &= ~0x10;  //slow slope 2MHz
+    GPIOB->DDR |= 0x10;   //Output
+    GPIOB->CR1 |= 0x10;   //Push-Pull
+  
+    GPIOB->ODR &= ~0x10;
+    Delay(1000);
+    GPIOB->ODR |= 0x10;
+    Delay(1000);
+    }
+  
+    GPIOB->ODR &= ~0x10;
+    Delay(1000);
+      
+    GPIOB->DDR |= 0x20;   //Output
+    GPIOB->CR1 |= 0x20;   //Push-Pull
+    GPIOB->ODR &= ~0x20;
+    
+    GPIOB->ODR |= 0x10;
+    Delay(1000);
+    GPIOB->ODR |= 0x10;
+  }
 }

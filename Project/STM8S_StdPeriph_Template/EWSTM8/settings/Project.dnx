@@ -12,7 +12,7 @@
         <ByteLimit>50</ByteLimit>
     </Stack>
     <DebugChecksum>
-        <Checksum>2725340097</Checksum>
+        <Checksum>2328944093</Checksum>
     </DebugChecksum>
     <CallStack>
         <ShowArgs>0</ShowArgs>
@@ -27,12 +27,12 @@
     </Log_file>
     <struct_types>
         <Fmt0>bmp_t-temp	3	0</Fmt0>
-        <Fmt1>bmp_t-tfine	3	0</Fmt1>
-        <Fmt2>sensors_t-tmp	4	0</Fmt2>
-        <Fmt3>state_t-button	3	0</Fmt3>
-        <Fmt4>state_t-devState	3	0</Fmt4>
-        <Fmt5>state_t-flightState	3	0</Fmt5>
-        <Fmt6>state_t-tmp	5	0</Fmt6>
+        <Fmt1>bmp_t-tester2	1	0</Fmt1>
+        <Fmt2>bmp_t-tfine	3	0</Fmt2>
+        <Fmt3>sensors_t-tmp	4	0</Fmt3>
+        <Fmt4>state_t-button	3	0</Fmt4>
+        <Fmt5>state_t-devState	3	0</Fmt5>
+        <Fmt6>state_t-flightState	3	0</Fmt6>
     </struct_types>
     <array_types>
         <Fmt0>uint8_t[512]	5	0</Fmt0>
@@ -45,6 +45,8 @@
         <Fmt4>{W}1:beep_trigger	3	0</Fmt4>
         <Fmt5>{W}1:i	3	0</Fmt5>
         <Fmt6>{W}1:j	3	0</Fmt6>
+        <Fmt7>{W}1:tester	4	8</Fmt7>
+        <Fmt8>{W}1:tester2	1	0</Fmt8>
     </watch_formats>
     <DataSample>
         <LogEnabled>0</LogEnabled>
@@ -62,7 +64,10 @@
     </TermIOLog>
     <Breakpoints>
         <Bp0>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.0.1" 0 0 0 0 "" 0 ""</Bp0>
-        <Count>1</Count>
+        <Bp1>_ "STD_CODE" "{$PROJ_DIR$\..\ADXL.c}.33.3" 1 0 0 0 "" 0 ""</Bp1>
+        <Bp2>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.58.1" 1 0 0 0 "" 0 ""</Bp2>
+        <Bp3>_ "STD_CODE" "{$PROJ_DIR$\..\main.c}.58.1" 1 0 0 0 "" 0 ""</Bp3>
+        <Count>4</Count>
     </Breakpoints>
     <Aliases>
         <Count>0</Count>

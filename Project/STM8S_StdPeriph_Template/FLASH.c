@@ -151,14 +151,14 @@ uint8_t FLASH_Read1byte(uint32_t address){
 
 void FLASH_ReadOut(){
   FLASH_dataStruct_t FLASH_dataStruct;
+  uint8_t errors = 0;
   uint8_t string[12];
   uint32_t position = 0;
-  USART_SendString("No,Press,PressRaw,State,Alti,Temp,Vbat,AccX,AccY,AccZ,Velo!\n");
+  USART_SendString("No,Press,PressRaw,State,Alti,Temp,Vbat,AccX,AccY,AccZ,Velo\r\n");
   do{
     FLASH_arrayRead(position, FLASH_dataStruct.array, 32);
-    if(FLASH_dataStruct.array[0] != 0xAA) break;	//je?li brak zapisanych danych, zakoñcz przepisywanie
-    position += 32;
-    
+    //if(FLASH_dataStruct.array[0] == 0xAA) {
+    //if(1){  
     FLASH_int2string(string, (position>>5));
     USART_SendString(string);
     USART_SendChar(',');
@@ -175,7 +175,7 @@ void FLASH_ReadOut(){
     USART_SendString(string);
     USART_SendChar(',');
     
-    FLASH_int2string(string, FLASH_dataStruct.altitude);
+    FLASH_int2string(string, FLASH_dataStruct.altitude+300);
     USART_SendString(string);
     USART_SendChar(',');
     
@@ -187,23 +187,29 @@ void FLASH_ReadOut(){
     USART_SendString(string);
     USART_SendChar(',');
     
-    FLASH_int2string(string, FLASH_dataStruct.accX*100/256);
+    FLASH_int2string(string, (FLASH_dataStruct.accX*100L)/256L);
     USART_SendString(string);
     USART_SendChar(',');
     
-    FLASH_int2string(string, FLASH_dataStruct.accY*100/256);
+    FLASH_int2string(string, (FLASH_dataStruct.accY*100L)/256L);
     USART_SendString(string);
     USART_SendChar(',');
     
-    FLASH_int2string(string, FLASH_dataStruct.accZ*100/256);
+    FLASH_int2string(string, (FLASH_dataStruct.accZ*100L)/256L);
     USART_SendString(string);
     USART_SendChar(',');
     
     FLASH_int2string(string, FLASH_dataStruct.velocity);
     USART_SendString(string);
+    USART_SendChar('\r');
     USART_SendChar('\n');
-  } while((position < 0x200000) );
-  USART_SendString("Readout end!\n");
+    //}
+    //else errors++;
+    position += 32;
+    
+  } while((position < 0x200000) && (state_d.button < 20) && (errors < 100));
+  state_d.button = 0;
+  USART_SendString("Readout end!");
 }
 
 void FLASH_int2string(uint8_t * string, int32_t number){

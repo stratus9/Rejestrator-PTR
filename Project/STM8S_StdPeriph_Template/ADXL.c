@@ -10,14 +10,27 @@
 //==========================================================================================================
 void ADXL_init(){
   uint8_t data[2];
+  data[0] = 0x2C; data[1] = 0x0A;       //100Hz
+  I2C_SendNByte(0x3A, data, 2);
+  
   data[0] = 0x2D; data[1] = 0x00;
   I2C_SendNByte(0x3A, data, 2);
-  data[0] = 0x2D; data[1] = 0x10;
-  I2C_SendNByte(0x3A, data, 2);
+  
+  //data[0] = 0x2D; data[1] = 0x10;
+  //I2C_SendNByte(0x3A, data, 2);
+  
   data[0] = 0x2D; data[1] = 0x08;
   I2C_SendNByte(0x3A, data, 2);
+  
   data[0] = 0x31; data[1] = 0x0B;
   I2C_SendNByte(0x3A, data, 2);   // +/- 16g Full ress
+}
+
+void ADXL_deinit(){
+  uint8_t data[2];
+  
+  data[0] = 0x2D; data[1] = 0x00;       //standby mode
+  I2C_SendNByte(0x3A, data, 2);
 }
 
 void ADXL_read(sensors_t * sensor){
